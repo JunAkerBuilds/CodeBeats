@@ -4,7 +4,23 @@ A sleek, modern Spotify controller for Visual Studio Code. Control your music wi
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/codebeats)
 
-![CodeBeats Preview](https://via.placeholder.com/800x400/1DB954/FFFFFF?text=CodeBeats+Screenshot)
+## 📸 Screenshots
+
+### Compact Player View
+
+![Compact Player](https://github.com/JunAkerBuilds/CodeBeats/raw/main/assets/compact-player.png)
+
+### Compact Player (Fullscreen)
+
+![Compact Player Fullscreen](https://github.com/JunAkerBuilds/CodeBeats/raw/main/assets/compact-player-fullscreen.png)
+
+### Full View Player
+
+![Full View Player](https://github.com/JunAkerBuilds/CodeBeats/raw/main/assets/Fullview-player.png)
+
+### Full View Player (Fullscreen)
+
+![Full View Player Fullscreen](https://github.com/JunAkerBuilds/CodeBeats/raw/main/assets/Fullview-player-fullscreen.png)
 
 ## ✨ Features
 
