@@ -16,12 +16,15 @@
     "entertainment"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JunAkerBuilds/CodeBeats.git"
+  },
   "engines": {
     "vscode": "^1.106.0"
   },
   "categories": [
-    "Other",
-    "Entertainment"
+    "Other"
   ],
   "galleryBanner": {
     "color": "#1DB954",

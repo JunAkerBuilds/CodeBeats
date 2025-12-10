@@ -119,12 +119,6 @@ A sleek, modern Spotify controller for Visual Studio Code. Control your music wi
 
 ## ⚙️ Configuration
 
-### Environment Variables (.env file)
-
-```env
-SPOTIFY_CLIENT_ID=your_client_id_here
-```
-
 ### VS Code Settings
 
 Alternatively, use VS Code settings:
