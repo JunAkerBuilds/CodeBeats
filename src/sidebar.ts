@@ -1649,6 +1649,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 				const volumeValue = document.getElementById('volume-value');
 				const volumeIcon = document.getElementById('volume-icon');
 				let previousVolume = 50; // Store volume before muting
+				let isUserAdjustingVolume = false; // Track if user is actively adjusting volume
+				let lastUserSetVolume = null; // Track the last volume the user set
+				let volumeUpdateTimestamp = 0; // Track when we last sent a volume update
 				
 				// Login button
 				const loginBtn = document.getElementById('login-btn');
@@ -1787,6 +1790,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 						if (currentVolume > 0) {
 							// Mute: save current volume and set to 0
 							previousVolume = currentVolume;
+							lastUserSetVolume = 0;
+							volumeUpdateTimestamp = Date.now();
 							volumeSlider.value = '0';
 							volumeValue.textContent = '0%';
 							updateVolumeIcon(0);
@@ -1794,18 +1799,39 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 						} else {
 							// Unmute: restore previous volume
 							const restoreVolume = previousVolume || 50;
+							lastUserSetVolume = restoreVolume;
+							volumeUpdateTimestamp = Date.now();
 							volumeSlider.value = restoreVolume.toString();
 							volumeValue.textContent = restoreVolume + '%';
 							updateVolumeIcon(restoreVolume);
 							vscode.postMessage({ type: 'setVolume', volume: restoreVolume });
 						}
+						
+						// Prevent playback updates from overriding for a short time
+						isUserAdjustingVolume = true;
+						setTimeout(() => {
+							isUserAdjustingVolume = false;
+						}, 500);
 					});
 				}
 				
-				// Volume slider event listener
+				// Volume slider event listener with debouncing
 				if (volumeSlider && volumeValue) {
+					let volumeUpdateTimeout = null;
+					
+					volumeSlider.addEventListener('mousedown', () => {
+						// User started dragging
+						isUserAdjustingVolume = true;
+					});
+					
+					volumeSlider.addEventListener('touchstart', () => {
+						// User started dragging on touch device
+						isUserAdjustingVolume = true;
+					});
+					
 					volumeSlider.addEventListener('input', (e) => {
 						const volume = parseInt(e.target.value);
+						lastUserSetVolume = volume;
 						volumeValue.textContent = volume + '%';
 						
 						// Update icon based on volume
@@ -1816,7 +1842,51 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 							previousVolume = volume;
 						}
 						
+						// Debounce: Clear previous timeout and set a new one
+						// This prevents rapid API calls while dragging the slider
+						if (volumeUpdateTimeout) {
+							clearTimeout(volumeUpdateTimeout);
+						}
+						
+						// Only send API call after user stops dragging for 300ms
+						volumeUpdateTimeout = setTimeout(() => {
+							volumeUpdateTimestamp = Date.now();
+							vscode.postMessage({ type: 'setVolume', volume: volume });
+							volumeUpdateTimeout = null;
+							// Keep flag true for a bit longer to prevent immediate override
+							setTimeout(() => {
+								isUserAdjustingVolume = false;
+							}, 500);
+						}, 300);
+					});
+					
+					// Also send immediately on change event (when user releases slider)
+					volumeSlider.addEventListener('change', (e) => {
+						const volume = parseInt(e.target.value);
+						lastUserSetVolume = volume;
+						volumeUpdateTimestamp = Date.now();
+						
+						// Clear any pending timeout since we're sending immediately
+						if (volumeUpdateTimeout) {
+							clearTimeout(volumeUpdateTimeout);
+							volumeUpdateTimeout = null;
+						}
+						
 						vscode.postMessage({ type: 'setVolume', volume: volume });
+						
+						// Keep flag true for a bit to prevent immediate override from playback update
+						setTimeout(() => {
+							isUserAdjustingVolume = false;
+						}, 500);
+					});
+					
+					// Reset flag when user releases (mouseup/touchend)
+					volumeSlider.addEventListener('mouseup', () => {
+						// Flag will be reset after a delay in change handler
+					});
+					
+					volumeSlider.addEventListener('touchend', () => {
+						// Flag will be reset after a delay in change handler
 					});
 				}
 				
@@ -2007,16 +2077,28 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					}
 					
 					// Update volume slider if volume data is available
+					// But don't update if user is actively adjusting or just adjusted volume
 					if (data.volume !== undefined && volumeSlider && volumeValue) {
 						const currentSliderVolume = parseInt(volumeSlider.value);
-						// Only update if significantly different (avoid fighting with user input)
-						if (Math.abs(currentSliderVolume - data.volume) > 2) {
+						const timeSinceLastUpdate = Date.now() - volumeUpdateTimestamp;
+						
+						// Don't update if:
+						// 1. User is actively adjusting the slider
+						// 2. User just set a volume (within last 2 seconds) and the values are close
+						// 3. The difference is very small (less than 2) to avoid flicker
+						const shouldUpdate = !isUserAdjustingVolume && 
+							!(lastUserSetVolume !== null && timeSinceLastUpdate < 2000 && Math.abs(lastUserSetVolume - data.volume) <= 5) &&
+							Math.abs(currentSliderVolume - data.volume) > 2;
+						
+						if (shouldUpdate) {
 							volumeSlider.value = data.volume;
 							volumeValue.textContent = data.volume + '%';
 							updateVolumeIcon(data.volume);
 							if (data.volume > 0) {
 								previousVolume = data.volume;
 							}
+							// Reset the last user set volume since we've synced with server
+							lastUserSetVolume = null;
 						}
 					}
 					
