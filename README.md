@@ -2,7 +2,7 @@
 
 A sleek, modern Spotify controller for Visual Studio Code. Control your music without leaving your editor.
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/codebeats)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/JunAkerBuilds/CodeBeats)
 
 ## 📸 Screenshots
 
@@ -87,14 +87,6 @@ A sleek, modern Spotify controller for Visual Studio Code. Control your music wi
 4. Paste your Client ID
 5. Done! ✅
 
-**Option B - .env File (Advanced):**
-
-1. Create `.env` file in workspace root
-2. Add: `SPOTIFY_CLIENT_ID=your_client_id_here`
-3. Save file
-
-> 📖 **All Configuration Methods**: See [docs/CLIENT_ID_SETUP.md](docs/CLIENT_ID_SETUP.md)
-
 ### 3. Connect Spotify
 
 1. Click the **music note icon** (♪) in the Activity Bar
@@ -102,10 +94,6 @@ A sleek, modern Spotify controller for Visual Studio Code. Control your music wi
 3. **Browser security warning**: Click "Advanced" → "Proceed" (this is safe)
 4. Authorize in your browser
 5. Start playing music! 🎉
-
-> ⚠️ **Note**: You may see a browser security warning during authentication. This is expected for local OAuth flows and is safe to proceed. [Why?](SECURITY.md#browser-security-warnings)
-
-> 🚀 **Quick Start**: See [docs/QUICK_START.md](docs/QUICK_START.md) for a streamlined guide
 
 ## 🎮 Usage
 
@@ -143,7 +131,7 @@ Alternatively, use VS Code settings:
 
 ```json
 {
-  "music-player.spotifyClientId": "your_client_id_here"
+  "codebeats.spotifyClientId": "your_client_id_here"
 }
 ```
 
