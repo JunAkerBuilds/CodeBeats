@@ -1,0 +1,59 @@
+# Build files
+.vscode/**
+.vscode-test/**
+src/**
+out/**
+node_modules/**
+.gitignore
+.git/**
+
+# Config files
+tsconfig.json
+eslint.config.mjs
+esbuild.js
+.yarnrc
+
+# Development docs
+dev-docs/**
+vsc-extension-quickstart.md
+ENV_SETUP.md
+IMPLEMENTATION_CHECKLIST.md
+RUN_EXTENSION.md
+SPOTIFY_CONNECTION_SUMMARY.md
+SPOTIFY_INTEGRATION.md
+TECHNICAL_DETAILS.md
+TESTING_GUIDE.md
+VISUAL_GUIDE.md
+ICON_REQUIREMENTS.md
+PRODUCTION_CHECKLIST.md
+BEFORE_PUBLISHING.md
+
+# Additional docs (keep in repo, exclude from package)
+CHANGELOG.md
+CONTRIBUTING.md
+SECURITY.md
+docs/**
+
+# Scripts
+generate-cert.sh
+trust-cert.sh
+
+# Certificates (self-signed for OAuth callback)
+cert.crt
+cert.key
+
+# Environment
+.env
+.env.example
+
+# Source maps (include for debugging if needed)
+**/*.map
+
+# TypeScript source
+**/*.ts
+!src/**/*.d.ts
+
+# Keep essential docs only
+!README.md
+!LICENSE
+

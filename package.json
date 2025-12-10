@@ -1,0 +1,133 @@
+{
+  "name": "codebeats",
+  "displayName": "CodeBeats - Spotify Controller",
+  "description": "🎵 Control Spotify directly from VS Code. Play, pause, skip tracks, adjust volume, like songs, and see what's playing - all without leaving your editor. Beautiful UI with smooth animations.",
+  "version": "1.0.0",
+  "publisher": "aker",
+  "icon": "icon.png",
+  "keywords": [
+    "spotify",
+    "music",
+    "player",
+    "audio",
+    "playback",
+    "controls",
+    "productivity",
+    "entertainment"
+  ],
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.106.0"
+  },
+  "categories": [
+    "Other",
+    "Entertainment"
+  ],
+  "galleryBanner": {
+    "color": "#1DB954",
+    "theme": "dark"
+  },
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished",
+    "onView:music-player.sidebar"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "music-player.selectDevice",
+        "title": "CodeBeats: Select Device"
+      },
+      {
+        "command": "music-player.login",
+        "title": "CodeBeats: Connect Spotify"
+      },
+      {
+        "command": "music-player.logout",
+        "title": "CodeBeats: Sign Out"
+      },
+      {
+        "command": "music-player.play",
+        "title": "CodeBeats: Play"
+      },
+      {
+        "command": "music-player.pause",
+        "title": "CodeBeats: Pause"
+      },
+      {
+        "command": "music-player.next",
+        "title": "CodeBeats: Next Track"
+      },
+      {
+        "command": "music-player.previous",
+        "title": "CodeBeats: Previous Track"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codebeats",
+          "title": "CodeBeats",
+          "icon": "$(music)"
+        }
+      ]
+    },
+    "views": {
+      "codebeats": [
+        {
+          "id": "music-player.sidebar",
+          "name": "Now Playing",
+          "type": "webview"
+        }
+      ],
+      "explorer": [
+        {
+          "id": "music-player.sidebar-explorer",
+          "name": "CodeBeats",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "CodeBeats - Spotify Controller",
+      "properties": {
+        "codebeats.spotifyClientId": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "**Your Spotify Client ID** from [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard). Required for authentication.",
+          "order": 1
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "package-extension": "npx @vscode/vsce package --allow-missing-repository --allow-package-secrets privatekey --baseContentUrl https://example.com",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/vscode": "^1.106.1",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "esbuild": "^0.27.1",
+    "eslint": "^9.39.1",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.1"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3"
+  }
+}
