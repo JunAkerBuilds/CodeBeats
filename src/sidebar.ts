@@ -419,6 +419,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					position: absolute;
 					top: 0;
 					left: 0;
+					transform-origin: center center;
 				}
 				
 				body.compact-view .album-art .vinyl-icon {
@@ -620,15 +621,17 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					height: 100%;
 					object-fit: cover;
 					border-radius: 50%;
+					transform-origin: center center;
 				}
 				
 				.album-art.spinning img {
 					animation: smoothSpin 8s linear infinite;
+					transform-origin: center center;
 				}
 				
 				@keyframes smoothSpin {
-					from { transform: rotate(0deg); }
-					to { transform: rotate(360deg); }
+					0% { transform: rotate(0deg); }
+					100% { transform: rotate(360deg); }
 				}
 				
 				.vinyl-icon {
@@ -1643,12 +1646,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 				let lastDurationMs = 0;
 				let lastUpdateTime = 0;
 				let animationFrameId = null;
+				let currentTrackId = null; // Track current track ID to detect changes
 				
 				// Volume controls (declared at top level for access in updateNowPlaying)
 				const volumeSlider = document.getElementById('volume-slider');
 				const volumeValue = document.getElementById('volume-value');
 				const volumeIcon = document.getElementById('volume-icon');
 				let previousVolume = 50; // Store volume before muting
+				let isUserAdjustingVolume = false; // Track if user is actively adjusting volume
+				let lastUserSetVolume = null; // Track the last volume the user set
+				let volumeUpdateTimestamp = 0; // Track when we last sent a volume update
 				
 				// Login button
 				const loginBtn = document.getElementById('login-btn');
@@ -1787,6 +1794,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 						if (currentVolume > 0) {
 							// Mute: save current volume and set to 0
 							previousVolume = currentVolume;
+							lastUserSetVolume = 0;
+							volumeUpdateTimestamp = Date.now();
 							volumeSlider.value = '0';
 							volumeValue.textContent = '0%';
 							updateVolumeIcon(0);
@@ -1794,18 +1803,39 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 						} else {
 							// Unmute: restore previous volume
 							const restoreVolume = previousVolume || 50;
+							lastUserSetVolume = restoreVolume;
+							volumeUpdateTimestamp = Date.now();
 							volumeSlider.value = restoreVolume.toString();
 							volumeValue.textContent = restoreVolume + '%';
 							updateVolumeIcon(restoreVolume);
 							vscode.postMessage({ type: 'setVolume', volume: restoreVolume });
 						}
+						
+						// Prevent playback updates from overriding for a short time
+						isUserAdjustingVolume = true;
+						setTimeout(() => {
+							isUserAdjustingVolume = false;
+						}, 500);
 					});
 				}
 				
-				// Volume slider event listener
+				// Volume slider event listener with debouncing
 				if (volumeSlider && volumeValue) {
+					let volumeUpdateTimeout = null;
+					
+					volumeSlider.addEventListener('mousedown', () => {
+						// User started dragging
+						isUserAdjustingVolume = true;
+					});
+					
+					volumeSlider.addEventListener('touchstart', () => {
+						// User started dragging on touch device
+						isUserAdjustingVolume = true;
+					});
+					
 					volumeSlider.addEventListener('input', (e) => {
 						const volume = parseInt(e.target.value);
+						lastUserSetVolume = volume;
 						volumeValue.textContent = volume + '%';
 						
 						// Update icon based on volume
@@ -1816,7 +1846,51 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 							previousVolume = volume;
 						}
 						
+						// Debounce: Clear previous timeout and set a new one
+						// This prevents rapid API calls while dragging the slider
+						if (volumeUpdateTimeout) {
+							clearTimeout(volumeUpdateTimeout);
+						}
+						
+						// Only send API call after user stops dragging for 300ms
+						volumeUpdateTimeout = setTimeout(() => {
+							volumeUpdateTimestamp = Date.now();
+							vscode.postMessage({ type: 'setVolume', volume: volume });
+							volumeUpdateTimeout = null;
+							// Keep flag true for a bit longer to prevent immediate override
+							setTimeout(() => {
+								isUserAdjustingVolume = false;
+							}, 500);
+						}, 300);
+					});
+					
+					// Also send immediately on change event (when user releases slider)
+					volumeSlider.addEventListener('change', (e) => {
+						const volume = parseInt(e.target.value);
+						lastUserSetVolume = volume;
+						volumeUpdateTimestamp = Date.now();
+						
+						// Clear any pending timeout since we're sending immediately
+						if (volumeUpdateTimeout) {
+							clearTimeout(volumeUpdateTimeout);
+							volumeUpdateTimeout = null;
+						}
+						
 						vscode.postMessage({ type: 'setVolume', volume: volume });
+						
+						// Keep flag true for a bit to prevent immediate override from playback update
+						setTimeout(() => {
+							isUserAdjustingVolume = false;
+						}, 500);
+					});
+					
+					// Reset flag when user releases (mouseup/touchend)
+					volumeSlider.addEventListener('mouseup', () => {
+						// Flag will be reset after a delay in change handler
+					});
+					
+					volumeSlider.addEventListener('touchend', () => {
+						// Flag will be reset after a delay in change handler
 					});
 				}
 				
@@ -1916,11 +1990,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 						\`;
 						if (cardEl) cardEl.classList.remove('playing');
 						isPlaying = false;
+						currentTrackId = null;
 						stopProgressAnimation();
 						updatePlayPauseIcon();
 						return;
 					}
 
+					// Check if track changed
+					const trackChanged = currentTrackId !== data.trackId;
+					currentTrackId = data.trackId;
+					
 					isPlaying = data.isPlaying;
 					const spinClass = isPlaying ? 'spinning' : '';
 					const progress = data.progressMs && data.durationMs ? (data.progressMs / data.durationMs) * 100 : 0;
@@ -1930,67 +2009,103 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					lastDurationMs = data.durationMs || 0;
 					lastUpdateTime = Date.now();
 					
-					nowPlayingEl.innerHTML = \`
-						<div class="album-container">
-							<div class="album-art-wrapper">
-							<div class="album-art \${spinClass}">
-								\${data.albumArt ? 
-									\`<img src="\${data.albumArt}" alt="Album art" />\` : 
-										\`<span class="vinyl-icon">💿</span>\`
-								}
-							</div>
-								\${isPlaying ? \`
-									<div class="play-indicator">
-										<div class="equalizer">
-											<div class="eq-bar"></div>
-											<div class="eq-bar"></div>
-											<div class="eq-bar"></div>
+					// Only replace HTML if track changed, otherwise just update dynamic elements
+					if (trackChanged) {
+						nowPlayingEl.innerHTML = \`
+							<div class="album-container">
+								<div class="album-art-wrapper">
+								<div class="album-art \${spinClass}">
+									\${data.albumArt ? 
+										\`<img src="\${data.albumArt}" alt="Album art" />\` : 
+											\`<span class="vinyl-icon">💿</span>\`
+									}
+								</div>
+									\${isPlaying ? \`
+										<div class="play-indicator">
+											<div class="equalizer">
+												<div class="eq-bar"></div>
+												<div class="eq-bar"></div>
+												<div class="eq-bar"></div>
+											</div>
 										</div>
+									\` : ''}
+								</div>
+								<div class="compact-track-info">
+									<div class="compact-track-name" title="\${data.track}">\${data.track}</div>
+									<div class="compact-track-artist" title="\${data.artist}">\${data.artist || 'Unknown Artist'}</div>
+								</div>
+								<div class="track-details">
+									<div class="track-name" title="\${data.track}">\${data.track}</div>
+									<div class="track-artist" title="\${data.artist}">\${data.artist || 'Unknown Artist'}</div>
+									\${data.album ? \`<div class="track-album" title="\${data.album}">\${data.album}</div>\` : ''}
+								</div>
+							</div>
+							\${data.progressMs && data.durationMs ? \`
+								<div class="progress-container">
+									<div class="progress-times">
+										<span>\${formatTime(data.progressMs)}</span>
+										<span>\${formatTime(data.durationMs)}</span>
 									</div>
-								\` : ''}
-							</div>
-							<div class="compact-track-info">
-								<div class="compact-track-name" title="\${data.track}">\${data.track}</div>
-								<div class="compact-track-artist" title="\${data.artist}">\${data.artist || 'Unknown Artist'}</div>
-							</div>
-							<div class="track-details">
-								<div class="track-name" title="\${data.track}">\${data.track}</div>
-								<div class="track-artist" title="\${data.artist}">\${data.artist || 'Unknown Artist'}</div>
-								\${data.album ? \`<div class="track-album" title="\${data.album}">\${data.album}</div>\` : ''}
-							</div>
-						</div>
-						\${data.progressMs && data.durationMs ? \`
-							<div class="progress-container">
-								<div class="progress-times">
-									<span>\${formatTime(data.progressMs)}</span>
-									<span>\${formatTime(data.durationMs)}</span>
+									<div class="progress-bar">
+										<div class="progress-fill" data-progress="\${progress}"></div>
+									</div>
 								</div>
-								<div class="progress-bar">
-									<div class="progress-fill" data-progress="\${progress}"></div>
+							\` : ''}
+							\${data.nextTrack ? \`
+								<div class="up-next">
+									<div class="up-next-label">
+										<svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+											<path d="M16 18h2V6h-2v12zM6 18l8.5-6L6 6v12z"/>
+										</svg>
+										Up Next
+									</div>
+									<div class="next-track-name" title="\${data.nextTrack}">\${data.nextTrack}</div>
+									<div class="next-track-artist" title="\${data.nextArtist}">\${data.nextArtist || 'Unknown Artist'}</div>
 								</div>
-							</div>
-						\` : ''}
-						\${data.nextTrack ? \`
-							<div class="up-next">
-								<div class="up-next-label">
-									<svg class="icon" viewBox="0 0 24 24" fill="currentColor">
-										<path d="M16 18h2V6h-2v12zM6 18l8.5-6L6 6v12z"/>
-									</svg>
-									Up Next
-								</div>
-								<div class="next-track-name" title="\${data.nextTrack}">\${data.nextTrack}</div>
-								<div class="next-track-artist" title="\${data.nextArtist}">\${data.nextArtist || 'Unknown Artist'}</div>
-							</div>
-						\` : ''}
-					\`;
-					
-					// Set progress width via JavaScript (CSP-safe)
-					const progressFill = document.querySelector('.progress-fill');
-					if (progressFill) {
-						const progressValue = progressFill.getAttribute('data-progress');
-						if (progressValue) {
-							progressFill.style.width = progressValue + '%';
+							\` : ''}
+						\`;
+					} else {
+						// Track hasn't changed, just update dynamic elements
+						const albumArt = nowPlayingEl.querySelector('.album-art');
+						if (albumArt) {
+							// Update spinning class without recreating element
+							if (isPlaying) {
+								albumArt.classList.add('spinning');
+							} else {
+								albumArt.classList.remove('spinning');
+							}
 						}
+						
+						// Update play indicator
+						const playIndicator = nowPlayingEl.querySelector('.play-indicator');
+						if (isPlaying && !playIndicator) {
+							const albumArtWrapper = nowPlayingEl.querySelector('.album-art-wrapper');
+							if (albumArtWrapper) {
+								const indicator = document.createElement('div');
+								indicator.className = 'play-indicator';
+								indicator.innerHTML = \`
+									<div class="equalizer">
+										<div class="eq-bar"></div>
+										<div class="eq-bar"></div>
+										<div class="eq-bar"></div>
+									</div>
+								\`;
+								albumArtWrapper.appendChild(indicator);
+							}
+						} else if (!isPlaying && playIndicator) {
+							playIndicator.remove();
+						}
+					}
+					
+					// Always update progress bar and times (even if track hasn't changed)
+					const progressFill = document.querySelector('.progress-fill');
+					const progressTimes = document.querySelectorAll('.progress-times span');
+					if (progressFill) {
+						progressFill.style.width = progress + '%';
+					}
+					if (progressTimes.length >= 2 && data.progressMs && data.durationMs) {
+						progressTimes[0].textContent = formatTime(data.progressMs);
+						progressTimes[1].textContent = formatTime(data.durationMs);
 					}
 					
 					// Update device name
@@ -2007,16 +2122,28 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					}
 					
 					// Update volume slider if volume data is available
+					// But don't update if user is actively adjusting or just adjusted volume
 					if (data.volume !== undefined && volumeSlider && volumeValue) {
 						const currentSliderVolume = parseInt(volumeSlider.value);
-						// Only update if significantly different (avoid fighting with user input)
-						if (Math.abs(currentSliderVolume - data.volume) > 2) {
+						const timeSinceLastUpdate = Date.now() - volumeUpdateTimestamp;
+						
+						// Don't update if:
+						// 1. User is actively adjusting the slider
+						// 2. User just set a volume (within last 2 seconds) and the values are close
+						// 3. The difference is very small (less than 2) to avoid flicker
+						const shouldUpdate = !isUserAdjustingVolume && 
+							!(lastUserSetVolume !== null && timeSinceLastUpdate < 2000 && Math.abs(lastUserSetVolume - data.volume) <= 5) &&
+							Math.abs(currentSliderVolume - data.volume) > 2;
+						
+						if (shouldUpdate) {
 							volumeSlider.value = data.volume;
 							volumeValue.textContent = data.volume + '%';
 							updateVolumeIcon(data.volume);
 							if (data.volume > 0) {
 								previousVolume = data.volume;
 							}
+							// Reset the last user set volume since we've synced with server
+							lastUserSetVolume = null;
 						}
 					}
 					

@@ -25,6 +25,8 @@ const DEBUG = false; // Set to true for detailed API error logging
 
 let sideBar: SidebarProvider | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
+let authServer: ReturnType<typeof createServer> | undefined;
+let authTimeout: NodeJS.Timeout | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
 	// Load environment variables from .env file
@@ -145,7 +147,15 @@ function startStatusBarUpdates(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-	//nothing to clean up
+	// Clean up auth server if it's still running
+	if (authServer) {
+		authServer.close();
+		authServer = undefined;
+	}
+	if (authTimeout) {
+		clearTimeout(authTimeout);
+		authTimeout = undefined;
+	}
 }
 
 function getClientId(): string | undefined {
@@ -172,6 +182,16 @@ async function login(context: vscode.ExtensionContext) {
 		return;
 	}
 
+	// Close any existing auth server and clear timeout
+	if (authServer) {
+		authServer.close();
+		authServer = undefined;
+	}
+	if (authTimeout) {
+		clearTimeout(authTimeout);
+		authTimeout = undefined;
+	}
+
 	const { verifier, challenge } = createPkcePair(); 
 	const state = randomBytes(16).toString('hex');
 	const authUrl = new URL('https://accounts.spotify.com/authorize');
@@ -183,7 +203,18 @@ async function login(context: vscode.ExtensionContext) {
 	authUrl.searchParams.set('code_challenge', challenge);
 	authUrl.searchParams.set('state', state);
 
-	const server = createServer(getSelfSignedCert(), async (req, res) => {
+	const cleanup = () => {
+		if (authServer) {
+			authServer.close();
+			authServer = undefined;
+		}
+		if (authTimeout) {
+			clearTimeout(authTimeout);
+			authTimeout = undefined;
+		}
+	};
+
+	authServer = createServer(getSelfSignedCert(), async (req, res) => {
 		const targetUrl = new URL(req.url ?? '', `https://127.0.0.1:${REDIRECT_PORT}`);
 		if (targetUrl.pathname !== '/callback') {
 			res.writeHead(404).end(); 
@@ -195,13 +226,13 @@ async function login(context: vscode.ExtensionContext) {
 		const error = targetUrl.searchParams.get('error');
 		if(error || !code || returnedState !== state){
 			res.writeHead(400, {'Content-Type': 'text/plain'}).end('Authentication failed. Please try again.');
-			server.close(); 
+			cleanup();
 			vscode.window.showErrorMessage('Spotify authentication failed. Please try again.');
 			return; 
 		}
 
 		res.writeHead(200, {'Content-Type': 'text/plain'}).end('Authentication successful! You can close this tab.');
-		server.close();
+		cleanup();
 
 		const tokenSet = await exchangeCodeForToken({code, verifier, clientId});
 		if (!tokenSet){
@@ -214,8 +245,34 @@ async function login(context: vscode.ExtensionContext) {
 		vscode.window.showInformationMessage('Successfully authenticated with Spotify!');
 	});
 
-	server.listen(REDIRECT_PORT, () => {
+	// Set a timeout to close the server if no callback is received within 5 minutes
+	authTimeout = setTimeout(() => {
+		if (authServer) {
+			authServer.close();
+			authServer = undefined;
+		}
+		authTimeout = undefined;
+		vscode.window.showWarningMessage('Authentication timed out. Please try connecting again.');
+	}, 5 * 60 * 1000); // 5 minutes
+
+	authServer.listen(REDIRECT_PORT, () => {
 		vscode.env.openExternal(vscode.Uri.parse(authUrl.toString()));
+	});
+
+	// Handle server errors (e.g., port already in use)
+	authServer.on('error', (err: NodeJS.ErrnoException) => {
+		if (err.code === 'EADDRINUSE') {
+			// Port is already in use - try to close existing server and retry
+			vscode.window.showWarningMessage('Port is already in use. Closing existing connection and retrying...');
+			cleanup();
+			// Retry after a short delay
+			setTimeout(() => {
+				login(context);
+			}, 1000);
+		} else {
+			cleanup();
+			vscode.window.showErrorMessage(`Failed to start authentication server: ${err.message}`);
+		}
 	});
 
 }
@@ -246,12 +303,15 @@ async function logout(context: vscode.ExtensionContext) {
 }
 
 
-async function callPlayerEndpoint(context: vscode.ExtensionContext, url:string, init: RequestInit){
+async function callPlayerEndpoint(context: vscode.ExtensionContext, url:string, init: RequestInit, retryCount = 0): Promise<Response | undefined>{
 	const tokenSet = await ensureValidToken(context);
 	if (!tokenSet){
 		vscode.window.showErrorMessage('Not authenticated with Spotify. Please log in.');
 		return; 
 	}
+
+	const maxRetries = 3;
+	const baseDelay = 1000; // 1 second base delay
 
 	const response = await fetch(url, {
 		...init,
@@ -266,6 +326,33 @@ async function callPlayerEndpoint(context: vscode.ExtensionContext, url:string, 
 		const body = await safeReadBody(response);
 		if (DEBUG) {
 			console.error(`API Error - Endpoint: ${url} - Status: ${response.status} ${response.statusText} - Body: ${body ?? 'No response body'}`);
+		}
+		
+		// Handle 429 (Rate Limit) with retry logic
+		if (response.status === 429) {
+			const retryAfter = response.headers.get('Retry-After');
+			const delay = retryAfter ? parseInt(retryAfter) * 1000 : baseDelay * Math.pow(2, retryCount);
+			
+			if (retryCount < maxRetries) {
+				if (DEBUG) {
+					console.log(`Rate limited (429). Retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+				}
+				
+				// Wait before retrying with exponential backoff
+				await new Promise(resolve => setTimeout(resolve, delay));
+				
+				// Retry the request
+				return callPlayerEndpoint(context, url, init, retryCount + 1);
+			} else {
+				// Max retries reached
+				const isVolumeEndpoint = url.includes('/volume');
+				const errorMessage = isVolumeEndpoint 
+					? 'Volume update rate limit exceeded. Please wait a moment before adjusting volume again.'
+					: `Spotify API rate limit exceeded (429). Please wait a moment and try again.`;
+				
+				vscode.window.showWarningMessage(errorMessage);
+				return undefined;
+			}
 		}
 		
 		if (response.status === 403) {
@@ -292,7 +379,7 @@ async function callPlayerEndpoint(context: vscode.ExtensionContext, url:string, 
 		} else {
 			vscode.window.showErrorMessage(`Spotify API request failed: ${response.status} ${response.statusText} - Endpoint: ${url} - ${body ?? 'No response body'}`);
 		}
-		return; 
+		return undefined; 
 	}
 
 	return response;
@@ -387,7 +474,10 @@ async function getCurrentPlayback(context: vscode.ExtensionContext): Promise<any
 		return undefined;
 	}
 
-	const data = await response.json();
+	const data = await safeJsonParse<any>(response);
+	if (!data) {
+		return undefined;
+	}
 	
 	// Fetch the queue to get next track
 	const queueData = await getQueue(context);
@@ -480,7 +570,10 @@ async function checkIfTrackIsLiked(context: vscode.ExtensionContext, trackId: st
 		return false;
 	}
 
-	const data = await response.json();
+	const data = await safeJsonParse<boolean[]>(response);
+	if (!data || !Array.isArray(data) || data.length === 0) {
+		return false;
+	}
 	return data[0] === true;
 }
 
@@ -545,9 +638,12 @@ async function getQueue(context: vscode.ExtensionContext): Promise<{ nextTrack?:
 		return undefined;
 	}
 
-	const data = await response.json();
-	const nextTrack = data.queue?.[0];
+	const data = await safeJsonParse<any>(response);
+	if (!data || !data.queue || !Array.isArray(data.queue)) {
+		return undefined;
+	}
 	
+	const nextTrack = data.queue[0];
 	if (!nextTrack) {
 		return undefined;
 	}
@@ -595,7 +691,10 @@ async function listDevices(context: vscode.ExtensionContext): Promise<Array<{ id
 		return [];
 	}
 
-	const data = await resp.json();
+	const data = await safeJsonParse<any>(resp);
+	if (!data || !data.devices) {
+		return [];
+	}
 	return (data.devices || []).map((d: any) => ({ id: d.id, name: d.name, is_active: d.is_active }));
 }
 
@@ -683,7 +782,10 @@ async function exchangeCodeForToken(params: { code: string; verifier: string; cl
 		return undefined;
 	}
 
-	const token = await response.json() as TokenResponse;
+	const token = await safeJsonParse<TokenResponse>(response);
+	if (!token || !token.access_token) {
+		return undefined;
+	}
 	return {
 		accessToken: token.access_token,
 		refreshToken: token.refresh_token ?? '',
@@ -712,7 +814,7 @@ async function refreshToken(refreshTokenValue: string, clientId: string): Promis
 		return undefined;
 	}
 
-	return await response.json() as TokenResponse;
+	return await safeJsonParse<TokenResponse>(response);
 }
 
 function getSelfSignedCert() {
@@ -778,7 +880,7 @@ function base64Url(buffer: Buffer) {
 
 async function loadTokenSet(context: vscode.ExtensionContext): Promise<TokenSet | undefined> {
 	const raw = await context.secrets.get(TOKEN_SECRET_KEY);
-	if (!raw) {
+	if (!raw || raw.trim().length === 0) {
 		return undefined;
 	}
 	
@@ -787,6 +889,8 @@ async function loadTokenSet(context: vscode.ExtensionContext): Promise<TokenSet 
 		return tokenSet;
 	} catch (e) {
 		console.error('Failed to parse token set from secrets:', e);
+		// Clear corrupted token
+		await context.secrets.delete(TOKEN_SECRET_KEY);
 		return undefined;
 	}
 } 
@@ -796,6 +900,19 @@ async function safeReadBody(response: Response): Promise<string | undefined> {
 		return await response.text();
 	} catch (error) {
 		console.error('Failed to read response body', error);
+		return undefined;
+	}
+}
+
+async function safeJsonParse<T>(response: Response): Promise<T | undefined> {
+	try {
+		const text = await response.text();
+		if (!text || text.trim().length === 0) {
+			return undefined;
+		}
+		return JSON.parse(text) as T;
+	} catch (error) {
+		console.error('Failed to parse JSON response:', error);
 		return undefined;
 	}
 }

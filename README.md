@@ -1,69 +1,54 @@
-# 🎵 CodeBeats
+<div align='center'>
 
-A sleek, modern Spotify controller for Visual Studio Code. Control your music without leaving your editor.
+# VS Code CodeBeats
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/JunAkerBuilds/CodeBeats)
+<img src="https://github.com/junakerbuilds/codebeats/raw/main/icon.png" alt="CodeBeats icon" width="160">
+</div>    
 
-## 📸 Screenshots
+<p align="center">
+    A sleek, modern Spotify controller for Visual Studio Code. Control your music without leaving your editor. 
+    <br>
+    Keep coding, keep vibing~
+    <br>
+    <br>
+    <a href="https://github.com/junakerbuilds/codebeats/issues/new?template=bug_report.md&title=">Report a Bug</a>
+    ·
+    <a href="https://github.com/junakerbuilds/codebeats/issues/new?template=feature_request.md&title=">Request feature</a>
+</p>
 
-### Compact Player View
+[![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/aker.codebeats?color=blue&logo=visual-studio)](https://marketplace.visualstudio.com/items?itemName=aker.codebeats&WT.mc_id=python-17801-anthonyshaw)
+[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/aker.codebeats?logo=visualstudio)](https://marketplace.visualstudio.com/items?itemName=aker.codebeats&WT.mc_id=python-17801-anthonyshaw)
+[![Visual Studio Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/aker.codebeats?logo=visualstudio)](https://marketplace.visualstudio.com/items?itemName=aker.codebeats&WT.mc_id=python-17801-anthonyshaw)
 
-![Compact Player](https://github.com/JunAkerBuilds/CodeBeats/raw/main/assets/compact-player.png)
+![screenshot](https://github.com/JunAkerBuilds/CodeBeats/raw/main/assets/full-view.gif)
 
-### Full View Player
+## Table of Contents
+- [Installation](#installation)
+- [Quick start with CodeBeats](#quick-start-with-codebeats)
+- [Using CodeBeats](#using-codebeats)
+- [Contributing](#contributing)
+- [Credits](#credits)
 
-![Full View Player](https://github.com/JunAkerBuilds/CodeBeats/raw/main/assets/Fullview-player.png)
 
-## ✨ Features
+## Installation
 
-### 🎛️ **Complete Playback Control**
+Install this extension from the [VS Code marketplace](https://marketplace.visualstudio.com/items?itemName=aker.codebeats).
 
-- **Play/Pause** - Control playback with a single click
-- **Next/Previous** - Skip tracks effortlessly
-- **Shuffle** - Toggle shuffle mode on/off
-- **Repeat** - Cycle through off/context/track modes
-- **Volume Control** - Smooth slider with mute/unmute
-- **Progress Bar** - Real-time track progress with smooth animations
+OR
 
-### 💚 **Smart Music Management**
+With VS Code open, search for `CodeBeats` in the extension panel (`Ctrl+Shift+X` on Windows/Linux or `Cmd(⌘)+Shift+X` on MacOS) and click install.
 
-- **Like/Unlike Tracks** - Save favorites to your Spotify library
-- **Now Playing** - Beautiful vinyl record player display
-- **Up Next** - See what's coming up in your queue
-- **Device Selection** - Switch between Spotify devices easily
+OR
 
-### 📊 **Status Bar Integration**
+With VS Code open, launch VS Code Quick Open (`Ctrl+P` on Windows/Linux or `Cmd(⌘)+P` on MacOS), paste the following command, and press enter.
 
-- **Always Visible** - Current track info in VS Code status bar
-- **Quick Controls** - Click to play/pause instantly
-- **Live Updates** - Auto-refreshes every 5 seconds
+`ext install aker.codebeats`
 
-### 🎨 **Beautiful UI**
+## Quick start with CodeBeats
 
-- **Compact Design** - Fits perfectly in your sidebar
-- **Vinyl Aesthetics** - Spinning album art record player
-- **Smooth Animations** - Polished transitions and effects
-- **Glassmorphism** - Modern, frosted glass design
-- **Dark Theme Optimized** - Seamless VS Code integration
+CodeBeats uses Spotify's Web API to control playback. Spotify Premium is required for playback control (per Spotify's API rules).
 
-### 🔍 **Multiple Access Points**
-
-- **Activity Bar Icon** - Dedicated music note icon
-- **Explorer Sidebar** - Available in file explorer
-- **Status Bar** - Quick access from bottom bar
-
-## 📦 Installation
-
-### From VS Code Marketplace (Coming Soon)
-
-1. Open VS Code
-2. Go to Extensions (`Cmd+Shift+X` / `Ctrl+Shift+X`)
-3. Search for "CodeBeats"
-4. Click Install
-5. **⚠️ Setup Required** - See Quick Start below (5 minutes)
-
-## 🚀 Quick Start
-
+Congrats on installing CodeBeats! Follow these steps to get set up: 
 ### 1. Create Spotify Developer App
 
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
@@ -92,10 +77,10 @@ A sleek, modern Spotify controller for Visual Studio Code. Control your music wi
 1. Click the **music note icon** (♪) in the Activity Bar
 2. Click **"Connect Spotify"**
 3. **Browser security warning**: Click "Advanced" → "Proceed" (this is safe)
-4. Authorize in your browser
-5. Start playing music! 🎉
+4. Authorize CodeBeats in your browser
+5. Start playing music!
 
-## 🎮 Usage
+## Using CodeBeats
 
 ### Playback Controls
 
@@ -117,67 +102,13 @@ A sleek, modern Spotify controller for Visual Studio Code. Control your music wi
 - Choose from available Spotify devices
 - Transfers playback instantly
 
-## ⚙️ Configuration
+### Full view & Compact view 
+Two layouts are available — switch anytime:
 
-### VS Code Settings
+![screenshot](https://github.com/JunAkerBuilds/CodeBeats/raw/main/assets/compact-view.gif)
 
-Alternatively, use VS Code settings:
 
-```json
-{
-  "codebeats.spotifyClientId": "your_client_id_here"
-}
-```
-
-## 🔒 Privacy & Security
-
-- **Secure Authentication** - Uses Spotify's PKCE OAuth flow
-- **Local Storage** - Tokens stored in VS Code's secure secret storage
-- **No Backend** - Direct connection to Spotify API
-- **Open Source** - Audit the code yourself
-
-### Required Permissions
-
-CodeBeats requests these Spotify scopes:
-
-- `user-read-playback-state` - Read current playback
-- `user-modify-playback-state` - Control playback
-- `user-library-read` - Check if tracks are liked
-- `user-library-modify` - Like/unlike tracks
-- `streaming` - Stream audio (future feature)
-
-## 🛠️ Troubleshooting
-
-### "403 Forbidden" Error
-
-**Problem**: Your account isn't on the app allowlist.
-
-**Solution**:
-
-1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Open your app → Settings → User Management
-3. Add your Spotify email
-4. Accept the invitation
-
-### "No Active Device" Error
-
-**Problem**: Spotify isn't running on any device.
-
-**Solution**:
-
-1. Open Spotify on your phone, computer, or web player
-2. Play any track
-3. Refresh CodeBeats
-
-### Volume Control Not Working
-
-**Problem**: Some devices don't support volume API.
-
-**Note**: Spotify's volume API doesn't work on all devices (e.g., some mobile devices). This is a Spotify limitation, not a bug.
-
-### More Help
-
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -187,24 +118,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 🙏 Acknowledgments
-
+## Credits
+- Built by [Jun](https://github.com/ZijunYe) & [Aker](https://github.com/Akerrules) 
 - Built with [VS Code Extension API](https://code.visualstudio.com/api)
 - Powered by [Spotify Web API](https://developer.spotify.com/documentation/web-api)
-- Inspired by music lovers who code
-
-## 🎯 Roadmap
-
-- [ ] Search functionality
-- [ ] Playlist browsing
-- [ ] Recently played tracks
-- [ ] Keyboard shortcuts
-- [ ] Lyrics display
-- [ ] Queue management
-- [ ] Desktop notifications
-
----
-
-**Made with 💚 by developers, for developers**
-
-_Keep coding, keep vibing_ 🎵
