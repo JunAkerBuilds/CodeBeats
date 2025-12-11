@@ -3021,7 +3021,10 @@ async function getCurrentPlayback(context) {
     }
     return void 0;
   }
-  const data = await response.json();
+  const data = await safeJsonParse(response);
+  if (!data) {
+    return void 0;
+  }
   const queueData = await getQueue(context);
   const trackId = data.item?.id;
   const isLiked = trackId ? await checkIfTrackIsLiked(context, trackId) : false;
@@ -3091,7 +3094,10 @@ async function checkIfTrackIsLiked(context, trackId) {
     console.error(`\u{1F6A8} API Error - Endpoint: ${url} - Status: ${response.status} ${response.statusText} - Body: ${body ?? "No response body"}`);
     return false;
   }
-  const data = await response.json();
+  const data = await safeJsonParse(response);
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    return false;
+  }
   return data[0] === true;
 }
 async function toggleLike(context) {
@@ -3145,8 +3151,11 @@ async function getQueue(context) {
     }
     return void 0;
   }
-  const data = await response.json();
-  const nextTrack2 = data.queue?.[0];
+  const data = await safeJsonParse(response);
+  if (!data || !data.queue || !Array.isArray(data.queue)) {
+    return void 0;
+  }
+  const nextTrack2 = data.queue[0];
   if (!nextTrack2) {
     return void 0;
   }
@@ -3186,7 +3195,10 @@ async function listDevices(context) {
     }
     return [];
   }
-  const data = await resp.json();
+  const data = await safeJsonParse(resp);
+  if (!data || !data.devices) {
+    return [];
+  }
   return (data.devices || []).map((d) => ({ id: d.id, name: d.name, is_active: d.is_active }));
 }
 async function transferPlayback(context, deviceId, play2 = true) {
@@ -3259,7 +3271,10 @@ async function exchangeCodeForToken(params) {
     }
     return void 0;
   }
-  const token = await response.json();
+  const token = await safeJsonParse(response);
+  if (!token || !token.access_token) {
+    return void 0;
+  }
   return {
     accessToken: token.access_token,
     refreshToken: token.refresh_token ?? "",
@@ -3284,7 +3299,7 @@ async function refreshToken(refreshTokenValue, clientId) {
     }
     return void 0;
   }
-  return await response.json();
+  return await safeJsonParse(response);
 }
 function getSelfSignedCert() {
   return {
@@ -3345,7 +3360,7 @@ function base64Url(buffer) {
 }
 async function loadTokenSet(context) {
   const raw = await context.secrets.get(TOKEN_SECRET_KEY);
-  if (!raw) {
+  if (!raw || raw.trim().length === 0) {
     return void 0;
   }
   try {
@@ -3353,6 +3368,7 @@ async function loadTokenSet(context) {
     return tokenSet;
   } catch (e) {
     console.error("Failed to parse token set from secrets:", e);
+    await context.secrets.delete(TOKEN_SECRET_KEY);
     return void 0;
   }
 }
@@ -3361,6 +3377,18 @@ async function safeReadBody(response) {
     return await response.text();
   } catch (error) {
     console.error("Failed to read response body", error);
+    return void 0;
+  }
+}
+async function safeJsonParse(response) {
+  try {
+    const text = await response.text();
+    if (!text || text.trim().length === 0) {
+      return void 0;
+    }
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Failed to parse JSON response:", error);
     return void 0;
   }
 }

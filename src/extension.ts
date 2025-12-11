@@ -474,7 +474,10 @@ async function getCurrentPlayback(context: vscode.ExtensionContext): Promise<any
 		return undefined;
 	}
 
-	const data = await response.json();
+	const data = await safeJsonParse<any>(response);
+	if (!data) {
+		return undefined;
+	}
 	
 	// Fetch the queue to get next track
 	const queueData = await getQueue(context);
@@ -567,7 +570,10 @@ async function checkIfTrackIsLiked(context: vscode.ExtensionContext, trackId: st
 		return false;
 	}
 
-	const data = await response.json();
+	const data = await safeJsonParse<boolean[]>(response);
+	if (!data || !Array.isArray(data) || data.length === 0) {
+		return false;
+	}
 	return data[0] === true;
 }
 
@@ -632,9 +638,12 @@ async function getQueue(context: vscode.ExtensionContext): Promise<{ nextTrack?:
 		return undefined;
 	}
 
-	const data = await response.json();
-	const nextTrack = data.queue?.[0];
+	const data = await safeJsonParse<any>(response);
+	if (!data || !data.queue || !Array.isArray(data.queue)) {
+		return undefined;
+	}
 	
+	const nextTrack = data.queue[0];
 	if (!nextTrack) {
 		return undefined;
 	}
@@ -682,7 +691,10 @@ async function listDevices(context: vscode.ExtensionContext): Promise<Array<{ id
 		return [];
 	}
 
-	const data = await resp.json();
+	const data = await safeJsonParse<any>(resp);
+	if (!data || !data.devices) {
+		return [];
+	}
 	return (data.devices || []).map((d: any) => ({ id: d.id, name: d.name, is_active: d.is_active }));
 }
 
@@ -770,7 +782,10 @@ async function exchangeCodeForToken(params: { code: string; verifier: string; cl
 		return undefined;
 	}
 
-	const token = await response.json() as TokenResponse;
+	const token = await safeJsonParse<TokenResponse>(response);
+	if (!token || !token.access_token) {
+		return undefined;
+	}
 	return {
 		accessToken: token.access_token,
 		refreshToken: token.refresh_token ?? '',
@@ -799,7 +814,7 @@ async function refreshToken(refreshTokenValue: string, clientId: string): Promis
 		return undefined;
 	}
 
-	return await response.json() as TokenResponse;
+	return await safeJsonParse<TokenResponse>(response);
 }
 
 function getSelfSignedCert() {
@@ -865,7 +880,7 @@ function base64Url(buffer: Buffer) {
 
 async function loadTokenSet(context: vscode.ExtensionContext): Promise<TokenSet | undefined> {
 	const raw = await context.secrets.get(TOKEN_SECRET_KEY);
-	if (!raw) {
+	if (!raw || raw.trim().length === 0) {
 		return undefined;
 	}
 	
@@ -874,6 +889,8 @@ async function loadTokenSet(context: vscode.ExtensionContext): Promise<TokenSet 
 		return tokenSet;
 	} catch (e) {
 		console.error('Failed to parse token set from secrets:', e);
+		// Clear corrupted token
+		await context.secrets.delete(TOKEN_SECRET_KEY);
 		return undefined;
 	}
 } 
@@ -883,6 +900,19 @@ async function safeReadBody(response: Response): Promise<string | undefined> {
 		return await response.text();
 	} catch (error) {
 		console.error('Failed to read response body', error);
+		return undefined;
+	}
+}
+
+async function safeJsonParse<T>(response: Response): Promise<T | undefined> {
+	try {
+		const text = await response.text();
+		if (!text || text.trim().length === 0) {
+			return undefined;
+		}
+		return JSON.parse(text) as T;
+	} catch (error) {
+		console.error('Failed to parse JSON response:', error);
 		return undefined;
 	}
 }
