@@ -25,6 +25,8 @@ const DEBUG = false; // Set to true for detailed API error logging
 
 let sideBar: SidebarProvider | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
+let authServer: ReturnType<typeof createServer> | undefined;
+let authTimeout: NodeJS.Timeout | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
 	// Load environment variables from .env file
@@ -145,7 +147,15 @@ function startStatusBarUpdates(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-	//nothing to clean up
+	// Clean up auth server if it's still running
+	if (authServer) {
+		authServer.close();
+		authServer = undefined;
+	}
+	if (authTimeout) {
+		clearTimeout(authTimeout);
+		authTimeout = undefined;
+	}
 }
 
 function getClientId(): string | undefined {
@@ -172,6 +182,16 @@ async function login(context: vscode.ExtensionContext) {
 		return;
 	}
 
+	// Close any existing auth server and clear timeout
+	if (authServer) {
+		authServer.close();
+		authServer = undefined;
+	}
+	if (authTimeout) {
+		clearTimeout(authTimeout);
+		authTimeout = undefined;
+	}
+
 	const { verifier, challenge } = createPkcePair(); 
 	const state = randomBytes(16).toString('hex');
 	const authUrl = new URL('https://accounts.spotify.com/authorize');
@@ -183,7 +203,18 @@ async function login(context: vscode.ExtensionContext) {
 	authUrl.searchParams.set('code_challenge', challenge);
 	authUrl.searchParams.set('state', state);
 
-	const server = createServer(getSelfSignedCert(), async (req, res) => {
+	const cleanup = () => {
+		if (authServer) {
+			authServer.close();
+			authServer = undefined;
+		}
+		if (authTimeout) {
+			clearTimeout(authTimeout);
+			authTimeout = undefined;
+		}
+	};
+
+	authServer = createServer(getSelfSignedCert(), async (req, res) => {
 		const targetUrl = new URL(req.url ?? '', `https://127.0.0.1:${REDIRECT_PORT}`);
 		if (targetUrl.pathname !== '/callback') {
 			res.writeHead(404).end(); 
@@ -195,13 +226,13 @@ async function login(context: vscode.ExtensionContext) {
 		const error = targetUrl.searchParams.get('error');
 		if(error || !code || returnedState !== state){
 			res.writeHead(400, {'Content-Type': 'text/plain'}).end('Authentication failed. Please try again.');
-			server.close(); 
+			cleanup();
 			vscode.window.showErrorMessage('Spotify authentication failed. Please try again.');
 			return; 
 		}
 
 		res.writeHead(200, {'Content-Type': 'text/plain'}).end('Authentication successful! You can close this tab.');
-		server.close();
+		cleanup();
 
 		const tokenSet = await exchangeCodeForToken({code, verifier, clientId});
 		if (!tokenSet){
@@ -214,8 +245,34 @@ async function login(context: vscode.ExtensionContext) {
 		vscode.window.showInformationMessage('Successfully authenticated with Spotify!');
 	});
 
-	server.listen(REDIRECT_PORT, () => {
+	// Set a timeout to close the server if no callback is received within 5 minutes
+	authTimeout = setTimeout(() => {
+		if (authServer) {
+			authServer.close();
+			authServer = undefined;
+		}
+		authTimeout = undefined;
+		vscode.window.showWarningMessage('Authentication timed out. Please try connecting again.');
+	}, 5 * 60 * 1000); // 5 minutes
+
+	authServer.listen(REDIRECT_PORT, () => {
 		vscode.env.openExternal(vscode.Uri.parse(authUrl.toString()));
+	});
+
+	// Handle server errors (e.g., port already in use)
+	authServer.on('error', (err: NodeJS.ErrnoException) => {
+		if (err.code === 'EADDRINUSE') {
+			// Port is already in use - try to close existing server and retry
+			vscode.window.showWarningMessage('Port is already in use. Closing existing connection and retrying...');
+			cleanup();
+			// Retry after a short delay
+			setTimeout(() => {
+				login(context);
+			}, 1000);
+		} else {
+			cleanup();
+			vscode.window.showErrorMessage(`Failed to start authentication server: ${err.message}`);
+		}
 	});
 
 }
