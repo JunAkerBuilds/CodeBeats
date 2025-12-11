@@ -28,6 +28,90 @@ const observer = new IntersectionObserver((entries) => {
     });
 }, observerOptions);
 
+// Fetch VS Code Marketplace stats
+async function fetchMarketplaceStats() {
+    const extensionId = 'aker.codebeats';
+    const installCountEl = document.getElementById('install-count');
+    const reviewRatingEl = document.getElementById('review-rating');
+    
+    try {
+        // Use VS Code Marketplace API with CORS proxy fallback
+        const apiUrl = 'https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery';
+        const corsProxy = 'https://api.allorigins.win/raw?url=';
+        
+        const requestBody = {
+            filters: [{
+                criteria: [{ filterType: 7, value: extensionId }]
+            }],
+            flags: 914
+        };
+        
+        let response;
+        try {
+            // Try direct API call first
+            response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json;api-version=3.0-preview.1'
+                },
+                body: JSON.stringify(requestBody)
+            });
+        } catch (e) {
+            // If CORS fails, try with proxy
+            response = await fetch(corsProxy + encodeURIComponent(apiUrl), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json;api-version=3.0-preview.1'
+                },
+                body: JSON.stringify(requestBody)
+            });
+        }
+        
+        if (response && response.ok) {
+            const data = await response.json();
+            if (data.results && data.results[0] && data.results[0].extensions && data.results[0].extensions[0]) {
+                const extension = data.results[0].extensions[0];
+                
+                // Format install count
+                const installCount = extension.statistics?.find(s => s.statisticName === 'install')?.value || 0;
+                if (installCount > 0) {
+                    installCountEl.textContent = formatNumber(installCount);
+                } else {
+                    installCountEl.textContent = '0';
+                }
+                
+                // Format rating
+                const rating = extension.statistics?.find(s => s.statisticName === 'averagerating')?.value || 0;
+                const ratingCount = extension.statistics?.find(s => s.statisticName === 'ratingcount')?.value || 0;
+                if (rating > 0) {
+                    reviewRatingEl.innerHTML = `<svg class="golden-star" width="20" height="20" viewBox="0 0 24 24" fill="#FFD700" style="display: inline-block; margin-right: 6px; vertical-align: middle; filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.8));"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> ${rating.toFixed(1)}<span style="font-size: 12px; color: var(--text-tertiary); margin-left: 4px;">(${formatNumber(ratingCount)})</span>`;
+                } else {
+                    reviewRatingEl.textContent = 'No ratings yet';
+                }
+                return;
+            }
+        }
+    } catch (error) {
+        console.log('Could not fetch marketplace stats:', error);
+    }
+    
+    // Fallback: Show link to marketplace
+    installCountEl.innerHTML = '<a href="https://marketplace.visualstudio.com/items?itemName=aker.codebeats" target="_blank" style="color: inherit; text-decoration: none;">View Stats</a>';
+    reviewRatingEl.innerHTML = '<a href="https://marketplace.visualstudio.com/items?itemName=aker.codebeats" target="_blank" style="color: inherit; text-decoration: none;">View Reviews</a>';
+}
+
+// Format large numbers
+function formatNumber(num) {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+}
+
 // Observe feature cards, install methods, and setup steps
 document.addEventListener('DOMContentLoaded', () => {
     const animatedElements = document.querySelectorAll('.feature-card, .install-method, .setup-step');
@@ -38,6 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
         el.style.transition = `opacity 0.6s ease ${index * 0.1}s, transform 0.6s ease ${index * 0.1}s`;
         observer.observe(el);
     });
+    
+    // Fetch marketplace stats
+    fetchMarketplaceStats();
 });
 
 // Navbar background on scroll
@@ -47,12 +134,10 @@ const navbar = document.querySelector('.navbar');
 window.addEventListener('scroll', () => {
     const currentScroll = window.pageYOffset;
     
-    if (currentScroll > 100) {
-        navbar.style.background = 'rgba(10, 10, 10, 0.95)';
-        navbar.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.3)';
+    if (currentScroll > 50) {
+        navbar.classList.add('scrolled');
     } else {
-        navbar.style.background = 'rgba(10, 10, 10, 0.8)';
-        navbar.style.boxShadow = 'none';
+        navbar.classList.remove('scrolled');
     }
     
     lastScroll = currentScroll;
