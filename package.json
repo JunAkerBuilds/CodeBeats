@@ -2,7 +2,7 @@
   "name": "codebeats",
   "displayName": "CodeBeats - Spotify Controller",
   "description": "🎵 Control Spotify directly from VS Code. Play, pause, skip tracks, adjust volume, like songs, and see what's playing - all without leaving your editor. Beautiful UI with smooth animations.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "aker",
   "icon": "icon.png",
   "keywords": [
@@ -110,7 +110,8 @@
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
     "package": "npm run check-types && npm run lint && node esbuild.js --production",
-    "package-extension": "npx @vscode/vsce package --allow-missing-repository --allow-package-secrets privatekey --baseContentUrl https://example.com",
+    "package-extension": "npx @vscode/vsce package --allow-missing-repository --allow-package-secrets privatekey",
+    "publish-extension": "npx @vscode/vsce publish --allow-package-secrets privatekey",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",

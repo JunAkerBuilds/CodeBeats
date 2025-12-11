@@ -29,7 +29,6 @@ PRODUCTION_CHECKLIST.md
 BEFORE_PUBLISHING.md
 
 # Additional docs (keep in repo, exclude from package)
-CHANGELOG.md
 CONTRIBUTING.md
 SECURITY.md
 docs/**
