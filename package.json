@@ -2,7 +2,7 @@
   "name": "codebeats",
   "displayName": "CodeBeats - Spotify Controller",
   "description": "🎵 Control Spotify directly from VS Code. Play, pause, skip tracks, adjust volume, like songs, and see what's playing - all without leaving your editor. Beautiful UI with smooth animations.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "aker",
   "icon": "icon.png",
   "keywords": [
