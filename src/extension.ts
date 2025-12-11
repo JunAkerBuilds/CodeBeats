@@ -246,12 +246,15 @@ async function logout(context: vscode.ExtensionContext) {
 }
 
 
-async function callPlayerEndpoint(context: vscode.ExtensionContext, url:string, init: RequestInit){
+async function callPlayerEndpoint(context: vscode.ExtensionContext, url:string, init: RequestInit, retryCount = 0): Promise<Response | undefined>{
 	const tokenSet = await ensureValidToken(context);
 	if (!tokenSet){
 		vscode.window.showErrorMessage('Not authenticated with Spotify. Please log in.');
 		return; 
 	}
+
+	const maxRetries = 3;
+	const baseDelay = 1000; // 1 second base delay
 
 	const response = await fetch(url, {
 		...init,
@@ -266,6 +269,33 @@ async function callPlayerEndpoint(context: vscode.ExtensionContext, url:string, 
 		const body = await safeReadBody(response);
 		if (DEBUG) {
 			console.error(`API Error - Endpoint: ${url} - Status: ${response.status} ${response.statusText} - Body: ${body ?? 'No response body'}`);
+		}
+		
+		// Handle 429 (Rate Limit) with retry logic
+		if (response.status === 429) {
+			const retryAfter = response.headers.get('Retry-After');
+			const delay = retryAfter ? parseInt(retryAfter) * 1000 : baseDelay * Math.pow(2, retryCount);
+			
+			if (retryCount < maxRetries) {
+				if (DEBUG) {
+					console.log(`Rate limited (429). Retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+				}
+				
+				// Wait before retrying with exponential backoff
+				await new Promise(resolve => setTimeout(resolve, delay));
+				
+				// Retry the request
+				return callPlayerEndpoint(context, url, init, retryCount + 1);
+			} else {
+				// Max retries reached
+				const isVolumeEndpoint = url.includes('/volume');
+				const errorMessage = isVolumeEndpoint 
+					? 'Volume update rate limit exceeded. Please wait a moment before adjusting volume again.'
+					: `Spotify API rate limit exceeded (429). Please wait a moment and try again.`;
+				
+				vscode.window.showWarningMessage(errorMessage);
+				return undefined;
+			}
 		}
 		
 		if (response.status === 403) {
@@ -292,7 +322,7 @@ async function callPlayerEndpoint(context: vscode.ExtensionContext, url:string, 
 		} else {
 			vscode.window.showErrorMessage(`Spotify API request failed: ${response.status} ${response.statusText} - Endpoint: ${url} - ${body ?? 'No response body'}`);
 		}
-		return; 
+		return undefined; 
 	}
 
 	return response;
