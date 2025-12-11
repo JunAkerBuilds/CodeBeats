@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CodeBeats - Control Spotify directly from VS Code. Play, pause, skip tracks, adjust volume, and see what's playing - all without leaving your editor.">
+    <title>CodeBeats - Spotify Controller for VS Code</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <div class="logo">
+                    <span class="logo-icon">♪</span>
+                    <span class="logo-text">CodeBeats</span>
+                </div>
+                <div class="nav-links">
+                    <a href="#features">Features</a>
+                    <a href="#install">Install</a>
+                    <a href="#setup">Setup</a>
+                    <a href="https://github.com/JunAkerBuilds/CodeBeats" target="_blank" rel="noopener noreferrer">GitHub</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1 class="hero-title">
+                        Control Spotify
+                        <span class="gradient-text">without leaving VS Code</span>
+                    </h1>
+                    <p class="hero-description">
+                        A sleek, modern Spotify controller for Visual Studio Code. 
+                        Play, pause, skip tracks, adjust volume, like songs, and see what's playing - 
+                        all without leaving your editor. Keep coding, keep vibing~
+                    </p>
+                    <div class="hero-buttons">
+                        <a href="https://marketplace.visualstudio.com/items?itemName=aker.codebeats" 
+                           class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                            <span>Install from Marketplace</span>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </a>
+                        <a href="https://github.com/JunAkerBuilds/CodeBeats" 
+                           class="btn btn-secondary" target="_blank" rel="noopener noreferrer">
+                            View on GitHub
+                        </a>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="stat">
+                            <div class="stat-value">1.0.1</div>
+                            <div class="stat-label">Latest Version</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">VS Code</div>
+                            <div class="stat-label">Extension</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">Spotify</div>
+                            <div class="stat-label">Premium Required</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="demo-container">
+                        <img src="../assets/full-view.gif" alt="CodeBeats in action" class="demo-gif">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section-title">Powerful Features</h2>
+            <p class="section-subtitle">Everything you need to control your music while coding</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">▶️</div>
+                    <h3 class="feature-title">Playback Controls</h3>
+                    <p class="feature-description">
+                        Play, pause, skip tracks, and control your music with intuitive buttons. 
+                        All accessible from your VS Code sidebar.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🔀</div>
+                    <h3 class="feature-title">Shuffle & Repeat</h3>
+                    <p class="feature-description">
+                        Toggle shuffle mode and cycle through repeat modes (off, track, context) 
+                        with a single click.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🔊</div>
+                    <h3 class="feature-title">Volume Control</h3>
+                    <p class="feature-description">
+                        Adjust volume with a smooth slider, mute/unmute instantly, 
+                        and see visual feedback for your volume level.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">💚</div>
+                    <h3 class="feature-title">Like Songs</h3>
+                    <p class="feature-description">
+                        Save tracks to your Liked Songs with animated heart feedback. 
+                        Never lose track of your favorite tunes.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3 class="feature-title">Device Selection</h3>
+                    <p class="feature-description">
+                        Switch between all your available Spotify devices instantly. 
+                        Control any device from VS Code.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3 class="feature-title">Beautiful UI</h3>
+                    <p class="feature-description">
+                        Two layout modes: full view and compact view. 
+                        Glassmorphism styling with smooth animations and Spotify-green accents.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Screenshots Section -->
+    <section class="screenshots">
+        <div class="container">
+            <h2 class="section-title">See It In Action</h2>
+            <div class="screenshots-grid">
+                <div class="screenshot-item">
+                    <div class="screenshot-container">
+                        <img src="../assets/full-view.gif" alt="CodeBeats full view" class="screenshot-img">
+                    </div>
+                    <p class="screenshot-label">Full View</p>
+                </div>
+                <div class="screenshot-item">
+                    <div class="screenshot-container">
+                        <img src="../assets/compact-view.gif" alt="CodeBeats compact view" class="screenshot-img">
+                    </div>
+                    <p class="screenshot-label">Compact View</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="install" class="install">
+        <div class="container">
+            <h2 class="section-title">Installation</h2>
+            <p class="section-subtitle">Get CodeBeats in just a few clicks</p>
+            
+            <div class="install-methods">
+                <div class="install-method">
+                    <div class="method-number">1</div>
+                    <h3 class="method-title">VS Code Marketplace</h3>
+                    <p class="method-description">
+                        Install directly from the Visual Studio Code Marketplace
+                    </p>
+                    <a href="https://marketplace.visualstudio.com/items?itemName=aker.codebeats" 
+                       class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                        Install Now
+                    </a>
+                </div>
+                
+                <div class="install-method">
+                    <div class="method-number">2</div>
+                    <h3 class="method-title">VS Code Extension Panel</h3>
+                    <p class="method-description">
+                        Search for "CodeBeats" in the extension panel 
+                        (<kbd>Ctrl+Shift+X</kbd> or <kbd>Cmd+Shift+X</kbd>)
+                    </p>
+                </div>
+                
+                <div class="install-method">
+                    <div class="method-number">3</div>
+                    <h3 class="method-title">Quick Open</h3>
+                    <p class="method-description">
+                        Use VS Code Quick Open (<kbd>Ctrl+P</kbd> or <kbd>Cmd+P</kbd>) 
+                        and paste: <code>ext install aker.codebeats</code>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Setup Section -->
+    <section id="setup" class="setup">
+        <div class="container">
+            <h2 class="section-title">Quick Setup Guide</h2>
+            <p class="section-subtitle">Get started in 3 simple steps</p>
+            
+            <div class="setup-steps">
+                <div class="setup-step">
+                    <div class="step-header">
+                        <div class="step-number">1</div>
+                        <h3 class="step-title">Create Spotify Developer App</h3>
+                    </div>
+                    <div class="step-content">
+                        <ol class="step-list">
+                            <li>Go to <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer">Spotify Developer Dashboard</a></li>
+                            <li>Log in and click <strong>"Create app"</strong></li>
+                            <li>Fill in the form:
+                                <ul>
+                                    <li><strong>App name</strong>: "CodeBeats" (or any name)</li>
+                                    <li><strong>App description</strong>: "VS Code music controller"</li>
+                                    <li><strong>Redirect URI</strong>: <code>https://127.0.0.1:4567/callback</code> ⚠️ <strong>Important!</strong></li>
+                                    <li><strong>Which API/SDKs</strong>: Select <strong>"Web API"</strong> ✅</li>
+                                </ul>
+                            </li>
+                            <li>Accept terms and click <strong>"Save"</strong></li>
+                            <li>Copy your <strong>Client ID</strong></li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <div class="setup-step">
+                    <div class="step-header">
+                        <div class="step-number">2</div>
+                        <h3 class="step-title">Configure Client ID</h3>
+                    </div>
+                    <div class="step-content">
+                        <ol class="step-list">
+                            <li>Open VS Code Settings: <kbd>Cmd+,</kbd> (Mac) or <kbd>Ctrl+,</kbd> (Windows/Linux)</li>
+                            <li>Search for: <code>spotify</code> or <code>codebeats</code></li>
+                            <li>Find <strong>"CodeBeats: Spotify Client Id"</strong></li>
+                            <li>Paste your Client ID</li>
+                            <li>Done! ✅</li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <div class="setup-step">
+                    <div class="step-header">
+                        <div class="step-number">3</div>
+                        <h3 class="step-title">Connect Spotify</h3>
+                    </div>
+                    <div class="step-content">
+                        <ol class="step-list">
+                            <li>Click the <strong>music note icon</strong> (♪) in the Activity Bar</li>
+                            <li>Click <strong>"Connect Spotify"</strong></li>
+                            <li><strong>Browser security warning</strong>: Click "Advanced" → "Proceed" (this is safe)</li>
+                            <li>Authorize CodeBeats in your browser</li>
+                            <li>Start playing music! 🎵</li>
+                        </ol>
+                        <div class="note-box">
+                            <strong>Note:</strong> Spotify Premium is required for playback control (per Spotify's API rules).
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <span class="logo-icon">♪</span>
+                        <span class="logo-text">CodeBeats</span>
+                    </div>
+                    <p class="footer-description">
+                        Control Spotify directly from VS Code. Keep coding, keep vibing~
+                    </p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4 class="footer-title">Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://marketplace.visualstudio.com/items?itemName=aker.codebeats" target="_blank" rel="noopener noreferrer">VS Code Marketplace</a></li>
+                        <li><a href="https://github.com/JunAkerBuilds/CodeBeats" target="_blank" rel="noopener noreferrer">GitHub Repository</a></li>
+                        <li><a href="https://github.com/JunAkerBuilds/CodeBeats/issues" target="_blank" rel="noopener noreferrer">Report Issue</a></li>
+                        <li><a href="https://developer.spotify.com/documentation/web-api" target="_blank" rel="noopener noreferrer">Spotify Web API</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4 class="footer-title">Credits</h4>
+                    <p class="footer-credits">
+                        Built by <a href="https://github.com/ZijunYe" target="_blank" rel="noopener noreferrer">Jun</a> & 
+                        <a href="https://github.com/Akerrules" target="_blank" rel="noopener noreferrer">Aker</a>
+                    </p>
+                    <p class="footer-credits">
+                        Powered by <a href="https://developer.spotify.com/documentation/web-api" target="_blank" rel="noopener noreferrer">Spotify Web API</a>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 CodeBeats. MIT License.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
