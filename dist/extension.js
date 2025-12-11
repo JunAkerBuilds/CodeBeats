@@ -2630,6 +2630,8 @@ var SPOTIFY_SCOPES = "user-read-playback-state user-modify-playback-state user-l
 var DEBUG = false;
 var sideBar;
 var statusBarItem;
+var authServer;
+var authTimeout;
 async function activate(context) {
   const envPath = path.join(context.extensionPath, ".env");
   dotenv.config({ path: envPath });
@@ -2726,6 +2728,14 @@ Click to ${playbackInfo.isPlaying ? "pause" : "play"}`;
   updateStatusBar();
 }
 function deactivate() {
+  if (authServer) {
+    authServer.close();
+    authServer = void 0;
+  }
+  if (authTimeout) {
+    clearTimeout(authTimeout);
+    authTimeout = void 0;
+  }
 }
 function getClientId() {
   const envClientId = process.env.SPOTIFY_CLIENT_ID;
@@ -2744,6 +2754,14 @@ async function login(context) {
     vscode2.window.showInformationMessage("Welcome to CodeBeats! \u{1F3B5} Open the sidebar to connect your Spotify account.");
     return;
   }
+  if (authServer) {
+    authServer.close();
+    authServer = void 0;
+  }
+  if (authTimeout) {
+    clearTimeout(authTimeout);
+    authTimeout = void 0;
+  }
   const { verifier, challenge } = createPkcePair();
   const state = (0, import_crypto.randomBytes)(16).toString("hex");
   const authUrl = new URL("https://accounts.spotify.com/authorize");
@@ -2754,7 +2772,17 @@ async function login(context) {
   authUrl.searchParams.set("code_challenge_method", "S256");
   authUrl.searchParams.set("code_challenge", challenge);
   authUrl.searchParams.set("state", state);
-  const server = (0, import_https.createServer)(getSelfSignedCert(), async (req, res) => {
+  const cleanup = () => {
+    if (authServer) {
+      authServer.close();
+      authServer = void 0;
+    }
+    if (authTimeout) {
+      clearTimeout(authTimeout);
+      authTimeout = void 0;
+    }
+  };
+  authServer = (0, import_https.createServer)(getSelfSignedCert(), async (req, res) => {
     const targetUrl = new URL(req.url ?? "", `https://127.0.0.1:${REDIRECT_PORT}`);
     if (targetUrl.pathname !== "/callback") {
       res.writeHead(404).end();
@@ -2765,12 +2793,12 @@ async function login(context) {
     const error = targetUrl.searchParams.get("error");
     if (error || !code || returnedState !== state) {
       res.writeHead(400, { "Content-Type": "text/plain" }).end("Authentication failed. Please try again.");
-      server.close();
+      cleanup();
       vscode2.window.showErrorMessage("Spotify authentication failed. Please try again.");
       return;
     }
     res.writeHead(200, { "Content-Type": "text/plain" }).end("Authentication successful! You can close this tab.");
-    server.close();
+    cleanup();
     const tokenSet = await exchangeCodeForToken({ code, verifier, clientId });
     if (!tokenSet) {
       vscode2.window.showErrorMessage("Failed to obtain access token from Spotify. Please try again.");
@@ -2780,8 +2808,28 @@ async function login(context) {
     sideBar?.setAccessToken(tokenSet.accessToken);
     vscode2.window.showInformationMessage("Successfully authenticated with Spotify!");
   });
-  server.listen(REDIRECT_PORT, () => {
+  authTimeout = setTimeout(() => {
+    if (authServer) {
+      authServer.close();
+      authServer = void 0;
+    }
+    authTimeout = void 0;
+    vscode2.window.showWarningMessage("Authentication timed out. Please try connecting again.");
+  }, 5 * 60 * 1e3);
+  authServer.listen(REDIRECT_PORT, () => {
     vscode2.env.openExternal(vscode2.Uri.parse(authUrl.toString()));
+  });
+  authServer.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      vscode2.window.showWarningMessage("Port is already in use. Closing existing connection and retrying...");
+      cleanup();
+      setTimeout(() => {
+        login(context);
+      }, 1e3);
+    } else {
+      cleanup();
+      vscode2.window.showErrorMessage(`Failed to start authentication server: ${err.message}`);
+    }
   });
 }
 async function logout(context) {
