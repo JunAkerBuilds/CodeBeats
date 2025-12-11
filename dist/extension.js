@@ -838,6 +838,7 @@ var SidebarProvider = class {
 					position: absolute;
 					top: 0;
 					left: 0;
+					transform-origin: center center;
 				}
 				
 				body.compact-view .album-art .vinyl-icon {
@@ -1039,15 +1040,17 @@ var SidebarProvider = class {
 					height: 100%;
 					object-fit: cover;
 					border-radius: 50%;
+					transform-origin: center center;
 				}
 				
 				.album-art.spinning img {
 					animation: smoothSpin 8s linear infinite;
+					transform-origin: center center;
 				}
 				
 				@keyframes smoothSpin {
-					from { transform: rotate(0deg); }
-					to { transform: rotate(360deg); }
+					0% { transform: rotate(0deg); }
+					100% { transform: rotate(360deg); }
 				}
 				
 				.vinyl-icon {
@@ -2062,6 +2065,7 @@ var SidebarProvider = class {
 				let lastDurationMs = 0;
 				let lastUpdateTime = 0;
 				let animationFrameId = null;
+				let currentTrackId = null; // Track current track ID to detect changes
 				
 				// Volume controls (declared at top level for access in updateNowPlaying)
 				const volumeSlider = document.getElementById('volume-slider');
@@ -2405,11 +2409,16 @@ var SidebarProvider = class {
 						\`;
 						if (cardEl) cardEl.classList.remove('playing');
 						isPlaying = false;
+						currentTrackId = null;
 						stopProgressAnimation();
 						updatePlayPauseIcon();
 						return;
 					}
 
+					// Check if track changed
+					const trackChanged = currentTrackId !== data.trackId;
+					currentTrackId = data.trackId;
+					
 					isPlaying = data.isPlaying;
 					const spinClass = isPlaying ? 'spinning' : '';
 					const progress = data.progressMs && data.durationMs ? (data.progressMs / data.durationMs) * 100 : 0;
@@ -2419,67 +2428,103 @@ var SidebarProvider = class {
 					lastDurationMs = data.durationMs || 0;
 					lastUpdateTime = Date.now();
 					
-					nowPlayingEl.innerHTML = \`
-						<div class="album-container">
-							<div class="album-art-wrapper">
-							<div class="album-art \${spinClass}">
-								\${data.albumArt ? 
-									\`<img src="\${data.albumArt}" alt="Album art" />\` : 
-										\`<span class="vinyl-icon">\u{1F4BF}</span>\`
-								}
-							</div>
-								\${isPlaying ? \`
-									<div class="play-indicator">
-										<div class="equalizer">
-											<div class="eq-bar"></div>
-											<div class="eq-bar"></div>
-											<div class="eq-bar"></div>
+					// Only replace HTML if track changed, otherwise just update dynamic elements
+					if (trackChanged) {
+						nowPlayingEl.innerHTML = \`
+							<div class="album-container">
+								<div class="album-art-wrapper">
+								<div class="album-art \${spinClass}">
+									\${data.albumArt ? 
+										\`<img src="\${data.albumArt}" alt="Album art" />\` : 
+											\`<span class="vinyl-icon">\u{1F4BF}</span>\`
+									}
+								</div>
+									\${isPlaying ? \`
+										<div class="play-indicator">
+											<div class="equalizer">
+												<div class="eq-bar"></div>
+												<div class="eq-bar"></div>
+												<div class="eq-bar"></div>
+											</div>
 										</div>
+									\` : ''}
+								</div>
+								<div class="compact-track-info">
+									<div class="compact-track-name" title="\${data.track}">\${data.track}</div>
+									<div class="compact-track-artist" title="\${data.artist}">\${data.artist || 'Unknown Artist'}</div>
+								</div>
+								<div class="track-details">
+									<div class="track-name" title="\${data.track}">\${data.track}</div>
+									<div class="track-artist" title="\${data.artist}">\${data.artist || 'Unknown Artist'}</div>
+									\${data.album ? \`<div class="track-album" title="\${data.album}">\${data.album}</div>\` : ''}
+								</div>
+							</div>
+							\${data.progressMs && data.durationMs ? \`
+								<div class="progress-container">
+									<div class="progress-times">
+										<span>\${formatTime(data.progressMs)}</span>
+										<span>\${formatTime(data.durationMs)}</span>
 									</div>
-								\` : ''}
-							</div>
-							<div class="compact-track-info">
-								<div class="compact-track-name" title="\${data.track}">\${data.track}</div>
-								<div class="compact-track-artist" title="\${data.artist}">\${data.artist || 'Unknown Artist'}</div>
-							</div>
-							<div class="track-details">
-								<div class="track-name" title="\${data.track}">\${data.track}</div>
-								<div class="track-artist" title="\${data.artist}">\${data.artist || 'Unknown Artist'}</div>
-								\${data.album ? \`<div class="track-album" title="\${data.album}">\${data.album}</div>\` : ''}
-							</div>
-						</div>
-						\${data.progressMs && data.durationMs ? \`
-							<div class="progress-container">
-								<div class="progress-times">
-									<span>\${formatTime(data.progressMs)}</span>
-									<span>\${formatTime(data.durationMs)}</span>
+									<div class="progress-bar">
+										<div class="progress-fill" data-progress="\${progress}"></div>
+									</div>
 								</div>
-								<div class="progress-bar">
-									<div class="progress-fill" data-progress="\${progress}"></div>
+							\` : ''}
+							\${data.nextTrack ? \`
+								<div class="up-next">
+									<div class="up-next-label">
+										<svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+											<path d="M16 18h2V6h-2v12zM6 18l8.5-6L6 6v12z"/>
+										</svg>
+										Up Next
+									</div>
+									<div class="next-track-name" title="\${data.nextTrack}">\${data.nextTrack}</div>
+									<div class="next-track-artist" title="\${data.nextArtist}">\${data.nextArtist || 'Unknown Artist'}</div>
 								</div>
-							</div>
-						\` : ''}
-						\${data.nextTrack ? \`
-							<div class="up-next">
-								<div class="up-next-label">
-									<svg class="icon" viewBox="0 0 24 24" fill="currentColor">
-										<path d="M16 18h2V6h-2v12zM6 18l8.5-6L6 6v12z"/>
-									</svg>
-									Up Next
-								</div>
-								<div class="next-track-name" title="\${data.nextTrack}">\${data.nextTrack}</div>
-								<div class="next-track-artist" title="\${data.nextArtist}">\${data.nextArtist || 'Unknown Artist'}</div>
-							</div>
-						\` : ''}
-					\`;
-					
-					// Set progress width via JavaScript (CSP-safe)
-					const progressFill = document.querySelector('.progress-fill');
-					if (progressFill) {
-						const progressValue = progressFill.getAttribute('data-progress');
-						if (progressValue) {
-							progressFill.style.width = progressValue + '%';
+							\` : ''}
+						\`;
+					} else {
+						// Track hasn't changed, just update dynamic elements
+						const albumArt = nowPlayingEl.querySelector('.album-art');
+						if (albumArt) {
+							// Update spinning class without recreating element
+							if (isPlaying) {
+								albumArt.classList.add('spinning');
+							} else {
+								albumArt.classList.remove('spinning');
+							}
 						}
+						
+						// Update play indicator
+						const playIndicator = nowPlayingEl.querySelector('.play-indicator');
+						if (isPlaying && !playIndicator) {
+							const albumArtWrapper = nowPlayingEl.querySelector('.album-art-wrapper');
+							if (albumArtWrapper) {
+								const indicator = document.createElement('div');
+								indicator.className = 'play-indicator';
+								indicator.innerHTML = \`
+									<div class="equalizer">
+										<div class="eq-bar"></div>
+										<div class="eq-bar"></div>
+										<div class="eq-bar"></div>
+									</div>
+								\`;
+								albumArtWrapper.appendChild(indicator);
+							}
+						} else if (!isPlaying && playIndicator) {
+							playIndicator.remove();
+						}
+					}
+					
+					// Always update progress bar and times (even if track hasn't changed)
+					const progressFill = document.querySelector('.progress-fill');
+					const progressTimes = document.querySelectorAll('.progress-times span');
+					if (progressFill) {
+						progressFill.style.width = progress + '%';
+					}
+					if (progressTimes.length >= 2 && data.progressMs && data.durationMs) {
+						progressTimes[0].textContent = formatTime(data.progressMs);
+						progressTimes[1].textContent = formatTime(data.durationMs);
 					}
 					
 					// Update device name
