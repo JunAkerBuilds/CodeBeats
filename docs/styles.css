@@ -74,6 +74,8 @@ body {
         0 8px 32px rgba(0, 0, 0, 0.3),
         inset 0 1px 1px rgba(255, 255, 255, 0.1);
     transition: all 0.3s ease;
+    flex-wrap: wrap;
+    gap: 16px;
 }
 
 .navbar.scrolled .nav-content {
@@ -94,8 +96,10 @@ body {
 }
 
 .logo-icon {
-    font-size: 32px;
-    color: var(--spotify-green);
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    border-radius: 8px;
 }
 
 .nav-links {
@@ -143,6 +147,7 @@ body {
     overflow: hidden;
     z-index: 1;
     isolation: isolate;
+    margin-bottom: 0;
 }
 
 .hero::before {
@@ -158,6 +163,8 @@ body {
     filter: blur(60px);
     z-index: 0;
     pointer-events: none;
+    clip-path: inset(0 0 0 0);
+    will-change: transform;
 }
 
 .hero::after {
@@ -173,6 +180,8 @@ body {
     filter: blur(50px);
     z-index: 0;
     pointer-events: none;
+    clip-path: inset(0 0 0 0);
+    will-change: transform;
 }
 
 @keyframes pulse {
@@ -187,6 +196,8 @@ body {
     align-items: center;
     position: relative;
     z-index: 10;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
 }
 
 .hero-text {
@@ -448,6 +459,9 @@ body {
     background: var(--bg-secondary);
     position: relative;
     z-index: 2;
+    margin-top: 0;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
 }
 
 .section-title {
@@ -916,19 +930,80 @@ body {
     }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
     .navbar {
         padding: 12px 0;
     }
     
+    .navbar .container {
+        padding: 0 16px;
+    }
+    
     .nav-content {
-        padding: 10px 20px;
+        padding: 10px 16px;
         border-radius: 16px;
+        justify-content: center;
+        gap: 12px;
+    }
+    
+    .logo {
+        font-size: 20px;
+    }
+    
+    .logo-icon {
+        width: 36px;
+        height: 36px;
     }
     
     .nav-links {
-        gap: 16px;
-        font-size: 14px;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .nav-links a {
+        font-size: 13px;
+        padding: 4px 8px;
+    }
+}
+
+@media (max-width: 640px) {
+    .navbar {
+        padding: 10px 0;
+    }
+    
+    .navbar .container {
+        padding: 0 12px;
+    }
+    
+    .nav-content {
+        padding: 8px 12px;
+        border-radius: 12px;
+        gap: 8px;
+    }
+    
+    .logo {
+        font-size: 18px;
+        gap: 8px;
+    }
+    
+    .logo-icon {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .logo-text {
+        display: none;
+    }
+    
+    .nav-links {
+        gap: 8px;
+        font-size: 12px;
+    }
+    
+    .nav-links a {
+        font-size: 12px;
+        padding: 4px 6px;
     }
     
     .hero {
@@ -975,7 +1050,7 @@ body {
     .feature-card,
     .install-method,
     .setup-step {
-        animation: fadeInUp 0.6s ease-out;
+        animation: fadeInUp 0.3s ease-out;
     }
 }
 
