@@ -14,11 +14,15 @@
     <a href="https://github.com/junakerbuilds/codebeats/issues/new?template=bug_report.md&title=">Report a Bug</a>
     ·
     <a href="https://github.com/junakerbuilds/codebeats/issues/new?template=feature_request.md&title=">Request feature</a>
+
+    
 </p>
 
-[![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/aker.codebeats?color=blue&logo=visual-studio)](https://marketplace.visualstudio.com/items?itemName=aker.codebeats&WT.mc_id=python-17801-anthonyshaw)
-[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/aker.codebeats?logo=visualstudio)](https://marketplace.visualstudio.com/items?itemName=aker.codebeats&WT.mc_id=python-17801-anthonyshaw)
-[![Visual Studio Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/aker.codebeats?logo=visualstudio)](https://marketplace.visualstudio.com/items?itemName=aker.codebeats&WT.mc_id=python-17801-anthonyshaw)
+[![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/aker.codebeats?color=blue&logo=visual-studio)](https://marketplace.visualstudio.com/items?itemName=aker.codebeats)
+[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/aker.codebeats?logo=visualstudio)](https://marketplace.visualstudio.com/items?itemName=aker.codebeats)
+[![Visual Studio Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/aker.codebeats?logo=visualstudio)](https://marketplace.visualstudio.com/items?itemName=aker.codebeats)
+
+
 
 ![screenshot](https://github.com/JunAkerBuilds/CodeBeats/raw/main/assets/full-view.gif)
 
@@ -51,7 +55,7 @@ CodeBeats uses Spotify's Web API to control playback. Spotify Premium is require
 Congrats on installing CodeBeats! Follow these steps to get set up: 
 ### 1. Create Spotify Developer App
 
-1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) 
 2. Log in and click **"Create app"**
 3. Fill in the form (in order):
    - **App name**: "CodeBeats" (or any name)

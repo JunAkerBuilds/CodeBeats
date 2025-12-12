@@ -20,7 +20,7 @@ type TokenResponse = {
 const REDIRECT_PORT = 4567;
 const REDIRECT_URI = `https://127.0.0.1:${REDIRECT_PORT}/callback`;
 const TOKEN_SECRET_KEY = 'music-player.spotify.tokens';
-const SPOTIFY_SCOPES = 'user-read-playback-state user-modify-playback-state user-library-read user-library-modify';
+const SPOTIFY_SCOPES = 'user-read-playback-state user-modify-playback-state user-library-read user-library-modify playlist-read-private playlist-read-collaborative';
 const DEBUG = false; // Set to true for detailed API error logging
 
 let sideBar: SidebarProvider | undefined;
@@ -92,6 +92,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('music-player.toggleShuffle', () => toggleShuffle(context)),
 		vscode.commands.registerCommand('music-player.cycleRepeat', () => cycleRepeat(context)),
 		vscode.commands.registerCommand('music-player.toggleLike', () => toggleLike(context)),
+		vscode.commands.registerCommand('music-player.getQueue', () => getQueue(context)),
+		vscode.commands.registerCommand('music-player.getUserPlaylists', () => getUserPlaylists(context)),
+		vscode.commands.registerCommand('music-player.playPlaylist', (playlistId: string) => playPlaylist(context, playlistId)),
 	];
 
 	// Create status bar item
@@ -479,7 +482,7 @@ async function getCurrentPlayback(context: vscode.ExtensionContext): Promise<any
 		return undefined;
 	}
 	
-	// Fetch the queue to get next track
+	// Fetch the queue to get next track and full queue
 	const queueData = await getQueue(context);
 	
 	// Check if current track is liked
@@ -501,6 +504,7 @@ async function getCurrentPlayback(context: vscode.ExtensionContext): Promise<any
 		isLiked: isLiked,
 		nextTrack: queueData?.nextTrack,
 		nextArtist: queueData?.nextArtist,
+		queue: queueData?.queue || [],
 		deviceName: data.device?.name,
 		deviceType: data.device?.type
 	};
@@ -619,7 +623,7 @@ async function toggleLike(context: vscode.ExtensionContext) {
 	}
 }
 
-async function getQueue(context: vscode.ExtensionContext): Promise<{ nextTrack?: string; nextArtist?: string } | undefined> {
+async function getQueue(context: vscode.ExtensionContext): Promise<{ nextTrack?: string; nextArtist?: string; queue?: Array<{ id: string; name: string; artist: string; albumArt?: string; durationMs?: number }> } | undefined> {
 	const tokenSet = await ensureValidToken(context);
 	if (!tokenSet) {
 		return undefined;
@@ -644,13 +648,18 @@ async function getQueue(context: vscode.ExtensionContext): Promise<{ nextTrack?:
 	}
 	
 	const nextTrack = data.queue[0];
-	if (!nextTrack) {
-		return undefined;
-	}
+	const queue = data.queue.map((track: any) => ({
+		id: track.id,
+		name: track.name,
+		artist: track.artists?.map((a: any) => a.name).join(', ') || 'Unknown Artist',
+		albumArt: track.album?.images?.[2]?.url || track.album?.images?.[1]?.url || track.album?.images?.[0]?.url,
+		durationMs: track.duration_ms
+	}));
 
 	return {
-		nextTrack: nextTrack.name,
-		nextArtist: nextTrack.artists?.map((a: any) => a.name).join(', ')
+		nextTrack: nextTrack?.name,
+		nextArtist: nextTrack?.artists?.map((a: any) => a.name).join(', '),
+		queue: queue
 	};
 }
 
@@ -696,6 +705,118 @@ async function listDevices(context: vscode.ExtensionContext): Promise<Array<{ id
 		return [];
 	}
 	return (data.devices || []).map((d: any) => ({ id: d.id, name: d.name, is_active: d.is_active }));
+}
+
+// Get user's playlists
+async function getUserPlaylists(context: vscode.ExtensionContext): Promise<Array<{ id: string; name: string; description: string; imageUrl?: string; owner: string; trackCount: number }>> {
+	const tokenSet = await ensureValidToken(context);
+	if (!tokenSet) {
+		vscode.window.showErrorMessage('Not authenticated with Spotify. Please log in.');
+		return [];
+	}
+
+	const playlists: Array<{ id: string; name: string; description: string; imageUrl?: string; owner: string; trackCount: number }> = [];
+	let url = 'https://api.spotify.com/v1/me/playlists?limit=50';
+
+	while (url) {
+		const response = await fetch(url, {
+			headers: { Authorization: `Bearer ${tokenSet.accessToken}` }
+		});
+
+		if (!response.ok) {
+			const body = await safeReadBody(response);
+			if (DEBUG) {
+				console.error(`API Error - Endpoint: ${url} - Status: ${response.status} ${response.statusText} - Body: ${body ?? 'No response body'}`);
+			}
+			
+			if (response.status === 403) {
+				const action = await vscode.window.showErrorMessage(
+					`Spotify API access denied (403 Forbidden). Playlist access requires playlist-read-private and playlist-read-collaborative scopes. Please re-authenticate.`,
+					'Re-authenticate',
+					'Learn More'
+				);
+				
+				if (action === 'Re-authenticate') {
+					vscode.commands.executeCommand('music-player.logout');
+					setTimeout(() => vscode.commands.executeCommand('music-player.login'), 1000);
+				} else if (action === 'Learn More') {
+					vscode.env.openExternal(vscode.Uri.parse('https://developer.spotify.com/documentation/web-api/concepts/scopes'));
+				}
+			} else {
+				vscode.window.showErrorMessage(`Failed to fetch playlists: ${response.status} ${response.statusText}`);
+			}
+			break;
+		}
+
+		const data = await safeJsonParse<any>(response);
+		if (!data || !data.items) {
+			break;
+		}
+
+		playlists.push(...data.items.map((playlist: any) => ({
+			id: playlist.id,
+			name: playlist.name,
+			description: playlist.description || '',
+			imageUrl: playlist.images?.[0]?.url || playlist.images?.[1]?.url,
+			owner: playlist.owner?.display_name || playlist.owner?.id || 'Unknown',
+			trackCount: playlist.tracks?.total || 0
+		})));
+
+		url = data.next || undefined;
+	}
+
+	return playlists;
+}
+
+// Play a playlist
+async function playPlaylist(context: vscode.ExtensionContext, playlistId: string) {
+	const tokenSet = await ensureValidToken(context);
+	if (!tokenSet) {
+		vscode.window.showErrorMessage('Not authenticated with Spotify. Please log in.');
+		return;
+	}
+
+	const url = 'https://api.spotify.com/v1/me/player/play';
+	const response = await fetch(url, {
+		method: 'PUT',
+		headers: {
+			'Authorization': `Bearer ${tokenSet.accessToken}`,
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({
+			context_uri: `spotify:playlist:${playlistId}`
+		})
+	});
+
+	if (!response.ok) {
+		const body = await safeReadBody(response);
+		if (DEBUG) {
+			console.error(`API Error - Endpoint: ${url} - Status: ${response.status} ${response.statusText} - Body: ${body ?? 'No response body'}`);
+		}
+		
+		if (response.status === 404 && body?.includes('NO_ACTIVE_DEVICE')) {
+			const action = await vscode.window.showInformationMessage(
+				'No active Spotify device found. Please open Spotify on your computer, phone, or web player.',
+				'Select Device',
+				'Open Spotify Web'
+			);
+			
+			if (action === 'Select Device') {
+				vscode.commands.executeCommand('music-player.selectDevice');
+			} else if (action === 'Open Spotify Web') {
+				vscode.env.openExternal(vscode.Uri.parse('https://open.spotify.com'));
+			}
+		} else {
+			vscode.window.showErrorMessage(`Failed to play playlist: ${response.status} ${response.statusText}`);
+		}
+		return;
+	}
+
+	// Update UI after a short delay to allow playback to start
+	setTimeout(async () => {
+		const updated = await getCurrentPlayback(context);
+		sideBar?.sendPlaybackInfo(updated);
+	}, 1000);
 }
 
 // Transfer playback to the given device id
