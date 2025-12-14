@@ -95,6 +95,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('music-player.getQueue', () => getQueue(context)),
 		vscode.commands.registerCommand('music-player.getUserPlaylists', () => getUserPlaylists(context)),
 		vscode.commands.registerCommand('music-player.playPlaylist', (playlistId: string) => playPlaylist(context, playlistId)),
+		vscode.commands.registerCommand('music-player.playTrack', (trackId: string) => playTrack(context, trackId)),
 	];
 
 	// Create status bar item
@@ -819,6 +820,47 @@ async function playPlaylist(context: vscode.ExtensionContext, playlistId: string
 	}, 1000);
 }
 
+// Play a specific track by ID (skip to it in queue without disrupting the queue)
+async function playTrack(context: vscode.ExtensionContext, trackId: string) {
+	const tokenSet = await ensureValidToken(context);
+	if (!tokenSet) {
+		vscode.window.showErrorMessage('Not authenticated with Spotify. Please log in.');
+		return;
+	}
+
+	// Get current queue to find the position of the track
+	const currentQueue = await getQueue(context);
+	if (!currentQueue || !currentQueue.queue || currentQueue.queue.length === 0) {
+		vscode.window.showInformationMessage('Queue is empty. Cannot skip to track.');
+		return;
+	}
+
+	// Find the track in the queue
+	const trackIndex = currentQueue.queue.findIndex((track: any) => track.id === trackId);
+	if (trackIndex < 0) {
+		vscode.window.showInformationMessage('Track not found in current queue.');
+		return;
+	}
+
+	// Skip forward to the track (skip trackIndex times to reach it)
+	// Note: trackIndex 0 is the next track, so we skip that many times
+	for (let i = 0; i <= trackIndex; i++) {
+		await callPlayerEndpoint(context, 'https://api.spotify.com/v1/me/player/next', {
+			method: 'POST',
+		});
+		// Small delay between skips to avoid rate limiting and allow queue to update
+		if (i < trackIndex) {
+			await new Promise(resolve => setTimeout(resolve, 300));
+		}
+	}
+
+	// Update UI after a short delay to allow playback to start
+	setTimeout(async () => {
+		const updated = await getCurrentPlayback(context);
+		sideBar?.sendPlaybackInfo(updated);
+	}, 1000);
+}
+
 // Transfer playback to the given device id
 async function transferPlayback(context: vscode.ExtensionContext, deviceId: string, play = true) {
 	const tokenSet = await ensureValidToken(context);
@@ -847,6 +889,12 @@ async function transferPlayback(context: vscode.ExtensionContext, deviceId: stri
 	}
 
 	vscode.window.showInformationMessage('Playback transferred to selected device.');
+	
+	// Update UI with new device name after a short delay to allow device to become active
+	setTimeout(async () => {
+		const updated = await getCurrentPlayback(context);
+		sideBar?.sendPlaybackInfo(updated);
+	}, 500);
 }
 
 

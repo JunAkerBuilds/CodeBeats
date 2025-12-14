@@ -2,9 +2,11 @@
 
 All notable changes to the CodeBeats extension will be documented in this file. Keep the newest entries at the top for the VS Code Marketplace.
 
-## [Unreleased]
+## [1.0.3] - 2025-12-13
 
-- Placeholder for upcoming fixes and features.
+- **New: Queue Track Selection** - Click any track in the queue to skip forward to it without disrupting the queue order.
+- **Fixed: Device Name Update** - Device name now updates immediately in the UI after selecting a device from the device picker.
+- **Fixed: Queue Scroll** - Removed outer scroll from queue section for cleaner interface.
 
 ## [1.0.2] - 2025-12-11
 
