@@ -127,6 +127,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 				case 'playPlaylist':
 					vscode.commands.executeCommand('music-player.playPlaylist', message.playlistId);
 					break;
+				case 'playTrack':
+					vscode.commands.executeCommand('music-player.playTrack', message.trackId);
+					break;
 			}
 		});
 
@@ -775,8 +778,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					margin-top: 16px;
 					padding-top: 16px;
 					border-top: 1px solid rgba(255, 255, 255, 0.08);
-					max-height: 300px;
-					overflow-y: auto;
 				}
 				
 				.queue-header {
@@ -2538,7 +2539,21 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 						\`;
 						
 						// Setup queue toggle after queue section is created
-						setTimeout(() => setupQueueToggle(), 50);
+						setTimeout(() => {
+							setupQueueToggle();
+							// Add click handlers to queue items
+							const queueList = document.getElementById('queue-list');
+							if (queueList) {
+								queueList.querySelectorAll('.queue-item').forEach(item => {
+									item.addEventListener('click', () => {
+										const trackId = item.getAttribute('data-track-id');
+										if (trackId) {
+											vscode.postMessage({ type: 'playTrack', trackId: trackId });
+										}
+									});
+								});
+							}
+						}, 50);
 					} else {
 						// Track hasn't changed, just update dynamic elements
 						const albumArt = nowPlayingEl.querySelector('.album-art');
@@ -2725,6 +2740,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 							\${track.durationMs ? \`<div class="queue-item-duration">\${formatTime(track.durationMs)}</div>\` : ''}
 						</div>
 					\`).join('');
+					
+					// Add click handlers to queue items
+					queueList.querySelectorAll('.queue-item').forEach(item => {
+						item.addEventListener('click', () => {
+							const trackId = item.getAttribute('data-track-id');
+							if (trackId) {
+								vscode.postMessage({ type: 'playTrack', trackId: trackId });
+							}
+						});
+					});
 					
 					// Restore collapsed state
 					if (wasCollapsed) {
