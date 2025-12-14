@@ -889,6 +889,12 @@ async function transferPlayback(context: vscode.ExtensionContext, deviceId: stri
 	}
 
 	vscode.window.showInformationMessage('Playback transferred to selected device.');
+	
+	// Update UI with new device name after a short delay to allow device to become active
+	setTimeout(async () => {
+		const updated = await getCurrentPlayback(context);
+		sideBar?.sendPlaybackInfo(updated);
+	}, 500);
 }
 
 

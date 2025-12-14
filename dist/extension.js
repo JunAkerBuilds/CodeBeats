@@ -4001,6 +4001,10 @@ async function transferPlayback(context, deviceId, play2 = true) {
     return;
   }
   vscode2.window.showInformationMessage("Playback transferred to selected device.");
+  setTimeout(async () => {
+    const updated = await getCurrentPlayback(context);
+    sideBar?.sendPlaybackInfo(updated);
+  }, 500);
 }
 async function ensureValidToken(context) {
   const clientId = getClientId();
