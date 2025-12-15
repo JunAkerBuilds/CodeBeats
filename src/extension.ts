@@ -649,7 +649,7 @@ async function getQueue(context: vscode.ExtensionContext): Promise<{ nextTrack?:
 	}
 	
 	const nextTrack = data.queue[0];
-	const queue = data.queue.map((track: any) => ({
+	const queue = data.queue.slice(0, 10).map((track: any) => ({
 		id: track.id,
 		name: track.name,
 		artist: track.artists?.map((a: any) => a.name).join(', ') || 'Unknown Artist',
@@ -828,7 +828,103 @@ async function playTrack(context: vscode.ExtensionContext, trackId: string) {
 		return;
 	}
 
-	// Get current queue to find the position of the track
+	// Get current playback to check if we're playing from a playlist
+	const playbackUrl = 'https://api.spotify.com/v1/me/player';
+	const playbackResponse = await fetch(playbackUrl, {
+		headers: { Authorization: `Bearer ${tokenSet.accessToken}` }
+	});
+
+	if (!playbackResponse.ok) {
+		if (playbackResponse.status === 204) {
+			vscode.window.showInformationMessage('No active playback.');
+			return;
+		}
+		vscode.window.showErrorMessage('Failed to get current playback.');
+		return;
+	}
+
+	const playbackData = await safeJsonParse<any>(playbackResponse);
+	if (!playbackData) {
+		vscode.window.showErrorMessage('Failed to get current playback.');
+		return;
+	}
+
+	// Check if we're playing from a playlist context
+	const playbackContext = playbackData.context;
+	const isPlaylistContext = playbackContext && playbackContext.type === 'playlist' && playbackContext.uri;
+	const isShuffled = playbackData.shuffle_state;
+	
+	// Only use offset method if playing from playlist AND shuffle is OFF
+	// If shuffle is on, the queue order is different from playlist order, so use manual skip
+	if (isPlaylistContext && !isShuffled) {
+		// Extract playlist ID from URI (format: spotify:playlist:PLAYLIST_ID)
+		const playlistId = playbackContext.uri.split(':')[2];
+		
+		// Get playlist tracks to find the track's position
+		const playlistTracksUrl = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100`;
+		let offset = 0;
+		let found = false;
+		let trackPosition = -1;
+		
+		while (!found) {
+			const tracksResponse = await fetch(`${playlistTracksUrl}&offset=${offset}`, {
+				headers: { Authorization: `Bearer ${tokenSet.accessToken}` }
+			});
+			
+			if (!tracksResponse.ok) {
+				break;
+			}
+			
+			const tracksData = await safeJsonParse<any>(tracksResponse);
+			if (!tracksData || !tracksData.items) {
+				break;
+			}
+			
+			// Find the track in the playlist
+			for (let i = 0; i < tracksData.items.length; i++) {
+				const item = tracksData.items[i];
+				if (item.track && item.track.id === trackId) {
+					trackPosition = offset + i;
+					found = true;
+					break;
+				}
+			}
+			
+			if (!found && tracksData.next) {
+				offset += 100;
+			} else {
+				break;
+			}
+		}
+		
+		if (found && trackPosition >= 0) {
+			// Use offset parameter to jump directly to the track in the playlist
+			const playUrl = 'https://api.spotify.com/v1/me/player/play';
+			const playResponse = await fetch(playUrl, {
+				method: 'PUT',
+				headers: {
+					'Authorization': `Bearer ${tokenSet.accessToken}`,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					context_uri: playbackContext.uri,
+					offset: { position: trackPosition }
+				})
+			});
+			
+			if (playResponse.ok) {
+				// Update UI after a short delay
+				setTimeout(async () => {
+					const updated = await getCurrentPlayback(context);
+					sideBar?.sendPlaybackInfo(updated);
+				}, 500);
+				return;
+			}
+		}
+		// If offset method failed, fall through to manual skip
+	}
+
+	// Manual queue: Get current queue to find the position of the track
 	const currentQueue = await getQueue(context);
 	if (!currentQueue || !currentQueue.queue || currentQueue.queue.length === 0) {
 		vscode.window.showInformationMessage('Queue is empty. Cannot skip to track.');
@@ -844,13 +940,15 @@ async function playTrack(context: vscode.ExtensionContext, trackId: string) {
 
 	// Skip forward to the track (skip trackIndex times to reach it)
 	// Note: trackIndex 0 is the next track, so we skip that many times
+	// Optimized: Reduced delay between skips for faster execution (100ms instead of 300ms)
 	for (let i = 0; i <= trackIndex; i++) {
 		await callPlayerEndpoint(context, 'https://api.spotify.com/v1/me/player/next', {
 			method: 'POST',
 		});
-		// Small delay between skips to avoid rate limiting and allow queue to update
+		// Minimal delay between skips to avoid rate limiting (reduced from 300ms to 100ms)
+		// This makes skipping much faster while still being safe
 		if (i < trackIndex) {
-			await new Promise(resolve => setTimeout(resolve, 300));
+			await new Promise(resolve => setTimeout(resolve, 100));
 		}
 	}
 
