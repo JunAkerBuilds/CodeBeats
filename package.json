@@ -2,7 +2,7 @@
   "name": "codebeats",
   "displayName": "CodeBeats - Spotify Controller",
   "description": "🎵 Control Spotify directly from VS Code. Play, pause, skip tracks, adjust volume, like songs, and see what's playing - all without leaving your editor. Beautiful UI with smooth animations.",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "publisher": "aker",
   "icon": "icon.png",
   "keywords": [
@@ -16,12 +16,13 @@
     "entertainment"
   ],
   "license": "MIT",
+  "homepage": "https://junakerbuilds.github.io/CodeBeats/",
   "repository": {
     "type": "git",
     "url": "https://github.com/JunAkerBuilds/CodeBeats.git"
   },
   "engines": {
-    "vscode": "^1.106.0"
+    "vscode": "^1.104.0"
   },
   "categories": [
     "Other"
@@ -122,7 +123,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
-    "@types/vscode": "^1.106.1",
+    "@types/vscode": "^1.104.0",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "esbuild": "^0.27.1",

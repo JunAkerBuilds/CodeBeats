@@ -2,6 +2,12 @@
 
 All notable changes to the CodeBeats extension will be documented in this file. Keep the newest entries at the top for the VS Code Marketplace.
 
+## [1.0.4] - 2025-12-15
+
+- **New: Smart Queue Skipping** - Click any track in your queue to jump straight to it! When playing a playlist (without shuffle), it instantly jumps to that track. For shuffled playlists or manual queues, it quickly skips through tracks to get there.
+- **Improved: Queue Performance** - Queue display now limited to 10 tracks for better performance and cleaner interface.
+- **Changed: VS Code Compatibility** - Updated minimum VS Code version requirement to 1.104.0 for broader compatibility.
+
 ## [1.0.3] - 2025-12-13
 
 - **New: Queue Track Selection** - Click any track in the queue to skip forward to it without disrupting the queue order.
