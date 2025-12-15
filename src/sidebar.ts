@@ -1419,16 +1419,22 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 				}
 				
 				.sign-out-section {
-					display: ${isAuthenticated ? 'block' : 'none'};
 					margin-top: 16px;
 					padding-top: 16px;
 					border-top: 1px solid var(--vscode-widget-border);
 					text-align: center;
 				}
 				
+				.sign-out-section.hidden {
+					display: none;
+				}
+				
 				/* Compact Controls */
 				.controls-section {
-					display: ${isAuthenticated ? 'block' : 'none'};
+				}
+				
+				.controls-section.hidden {
+					display: none;
 				}
 				
 				.control-group {
@@ -1974,7 +1980,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					</div>
 				</div>
 				
-				<div class="playlists-section" id="playlists-section" style="display: ${isAuthenticated ? 'block' : 'none'};">
+				<div class="playlists-section ${isAuthenticated ? '' : 'hidden'}" id="playlists-section">
 					<div class="playlists-header">
 						<div class="playlists-label">
 							<svg class="icon" viewBox="0 0 24 24" fill="currentColor">
@@ -1989,8 +1995,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 						</button>
 					</div>
 					<div id="playlists-list" class="playlists-list">
-						<div class="playlists-loading" id="playlists-loading" style="display: none;">Loading playlists...</div>
-						<div class="playlists-empty" id="playlists-empty" style="display: none;">No playlists found</div>
+						<div class="playlists-loading hidden" id="playlists-loading">Loading playlists...</div>
+						<div class="playlists-empty hidden" id="playlists-empty">No playlists found</div>
 					</div>
 					<button id="load-playlists-btn" class="btn btn-secondary btn-load-playlists">
 						<svg class="icon" viewBox="0 0 24 24" fill="currentColor">
@@ -2113,8 +2119,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 						const emptyEl = document.getElementById('playlists-empty');
 						const listEl = document.getElementById('playlists-list');
 						
-						if (loadingEl) loadingEl.style.display = 'block';
-						if (emptyEl) emptyEl.style.display = 'none';
+						if (loadingEl) loadingEl.classList.remove('hidden');
+						if (emptyEl) emptyEl.classList.add('hidden');
 						if (listEl) listEl.innerHTML = '';
 						
 						vscode.postMessage({ type: 'getUserPlaylists' });
@@ -2712,7 +2718,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					
 					if (!queue || !Array.isArray(queue) || queue.length === 0) {
 						if (queueSection) {
-							queueSection.style.display = 'none';
+							queueSection.classList.add('hidden');
 						}
 						return;
 					}
@@ -2771,7 +2777,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 						}
 					}
 					
-					queueSection.style.display = 'block';
+					queueSection.classList.remove('hidden');
 					
 					// Re-setup toggle button after queue is updated
 					setupQueueToggle();
@@ -2786,18 +2792,18 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					
 					if (!playlistsList) return;
 					
-					if (playlistsLoading) playlistsLoading.style.display = 'none';
+					if (playlistsLoading) playlistsLoading.classList.add('hidden');
 					
 					// Preserve collapsed state
 					const wasCollapsed = playlistsList.classList.contains('collapsed');
 					
 					if (!playlists || !Array.isArray(playlists) || playlists.length === 0) {
-						if (playlistsEmpty) playlistsEmpty.style.display = 'block';
+						if (playlistsEmpty) playlistsEmpty.classList.remove('hidden');
 						playlistsList.innerHTML = '';
 						return;
 					}
 					
-					if (playlistsEmpty) playlistsEmpty.style.display = 'none';
+					if (playlistsEmpty) playlistsEmpty.classList.add('hidden');
 					
 					playlistsList.innerHTML = playlists.map((playlist) => \`
 						<div class="playlist-item" data-playlist-id="\${playlist.id}">
@@ -2838,7 +2844,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					
 					// Hide load button after playlists are loaded
 					if (loadBtn) {
-						loadBtn.style.display = 'none';
+						loadBtn.classList.add('hidden');
 					}
 				}
 				
@@ -2862,7 +2868,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 				const authenticated = ${isAuthenticated};
 				let pollInterval = null;
 				
+				// Set initial visibility for authenticated sections
+				const controlsSection = document.querySelector('.controls-section');
+				const signOutSection = document.querySelector('.sign-out-section');
+				const playlistsSection = document.getElementById('playlists-section');
+				
 				if (authenticated) {
+					if (controlsSection) controlsSection.classList.remove('hidden');
+					if (signOutSection) signOutSection.classList.remove('hidden');
+					if (playlistsSection) playlistsSection.classList.remove('hidden');
+					
 					vscode.postMessage({ type: 'getCurrentPlayback' });
 					
 					// Setup queue toggle on initial load if queue section exists
@@ -2874,6 +2889,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 							vscode.postMessage({ type: 'getCurrentPlayback' });
 						}
 					}, 2000);
+				} else {
+					if (controlsSection) controlsSection.classList.add('hidden');
+					if (signOutSection) signOutSection.classList.add('hidden');
+					if (playlistsSection) playlistsSection.classList.add('hidden');
 				}
 				
 				// Clean up interval on page unload
