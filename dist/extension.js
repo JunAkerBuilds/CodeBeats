@@ -3805,7 +3805,7 @@ async function getQueue(context) {
     return void 0;
   }
   const nextTrack2 = data.queue[0];
-  const queue = data.queue.map((track) => ({
+  const queue = data.queue.slice(0, 10).map((track) => ({
     id: track.id,
     name: track.name,
     artist: track.artists?.map((a) => a.name).join(", ") || "Unknown Artist",
@@ -3954,6 +3954,79 @@ async function playTrack(context, trackId) {
     vscode2.window.showErrorMessage("Not authenticated with Spotify. Please log in.");
     return;
   }
+  const playbackUrl = "https://api.spotify.com/v1/me/player";
+  const playbackResponse = await fetch(playbackUrl, {
+    headers: { Authorization: `Bearer ${tokenSet.accessToken}` }
+  });
+  if (!playbackResponse.ok) {
+    if (playbackResponse.status === 204) {
+      vscode2.window.showInformationMessage("No active playback.");
+      return;
+    }
+    vscode2.window.showErrorMessage("Failed to get current playback.");
+    return;
+  }
+  const playbackData = await safeJsonParse(playbackResponse);
+  if (!playbackData) {
+    vscode2.window.showErrorMessage("Failed to get current playback.");
+    return;
+  }
+  const playbackContext = playbackData.context;
+  const isPlaylistContext = playbackContext && playbackContext.type === "playlist" && playbackContext.uri;
+  const isShuffled = playbackData.shuffle_state;
+  if (isPlaylistContext && !isShuffled) {
+    const playlistId = playbackContext.uri.split(":")[2];
+    const playlistTracksUrl = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100`;
+    let offset = 0;
+    let found = false;
+    let trackPosition = -1;
+    while (!found) {
+      const tracksResponse = await fetch(`${playlistTracksUrl}&offset=${offset}`, {
+        headers: { Authorization: `Bearer ${tokenSet.accessToken}` }
+      });
+      if (!tracksResponse.ok) {
+        break;
+      }
+      const tracksData = await safeJsonParse(tracksResponse);
+      if (!tracksData || !tracksData.items) {
+        break;
+      }
+      for (let i = 0; i < tracksData.items.length; i++) {
+        const item = tracksData.items[i];
+        if (item.track && item.track.id === trackId) {
+          trackPosition = offset + i;
+          found = true;
+          break;
+        }
+      }
+      if (!found && tracksData.next) {
+        offset += 100;
+      } else {
+        break;
+      }
+    }
+    if (found && trackPosition >= 0) {
+      const playUrl = "https://api.spotify.com/v1/me/player/play";
+      const playResponse = await fetch(playUrl, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${tokenSet.accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          context_uri: playbackContext.uri,
+          offset: { position: trackPosition }
+        })
+      });
+      if (playResponse.ok) {
+        setTimeout(async () => {
+          const updated = await getCurrentPlayback(context);
+          sideBar?.sendPlaybackInfo(updated);
+        }, 500);
+        return;
+      }
+    }
+  }
   const currentQueue = await getQueue(context);
   if (!currentQueue || !currentQueue.queue || currentQueue.queue.length === 0) {
     vscode2.window.showInformationMessage("Queue is empty. Cannot skip to track.");
@@ -3969,7 +4042,7 @@ async function playTrack(context, trackId) {
       method: "POST"
     });
     if (i < trackIndex) {
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
   setTimeout(async () => {
