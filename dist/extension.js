@@ -536,6 +536,17 @@ var SidebarProvider = class {
         case "toggleLike":
           vscode.commands.executeCommand("music-player.toggleLike");
           break;
+        case "getQueue":
+          const queueResult = await vscode.commands.executeCommand("music-player.getQueue");
+          webviewView.webview.postMessage({ type: "queueData", data: queueResult });
+          break;
+        case "getUserPlaylists":
+          const playlistsResult = await vscode.commands.executeCommand("music-player.getUserPlaylists");
+          webviewView.webview.postMessage({ type: "playlistsData", data: playlistsResult });
+          break;
+        case "playPlaylist":
+          vscode.commands.executeCommand("music-player.playPlaylist", message.playlistId);
+          break;
       }
     });
     console.log("Webview resolution complete");
@@ -717,8 +728,9 @@ var SidebarProvider = class {
 					50% { opacity: 0.6; transform: scale(0.9); }
 				}
 				
-				/* View Toggle Button */
-				.view-toggle-btn {
+				/* View/Aesthetic Toggle Buttons */
+				.view-toggle-btn,
+				.aesthetic-toggle-btn {
 					width: 24px;
 					height: 24px;
 					padding: 4px;
@@ -733,20 +745,30 @@ var SidebarProvider = class {
 					opacity: 0.7;
 				}
 				
-				.view-toggle-btn:hover {
+				.view-toggle-btn:hover,
+				.aesthetic-toggle-btn:hover {
 					background: var(--button-hover-bg);
 					opacity: 1;
 					transform: scale(1.05);
 				}
 				
-				.view-toggle-btn:active {
+				.view-toggle-btn:active,
+				.aesthetic-toggle-btn:active {
 					transform: scale(0.95);
 				}
 				
-				.view-toggle-btn svg {
+				.view-toggle-btn svg,
+				.aesthetic-toggle-btn svg {
 					width: 14px;
 					height: 14px;
 					color: var(--vscode-foreground);
+				}
+				
+				.aesthetic-toggle-btn.active {
+					background: rgba(29, 185, 84, 0.18);
+					border-color: rgba(29, 185, 84, 0.4);
+					opacity: 1;
+					box-shadow: 0 4px 12px rgba(29, 185, 84, 0.35);
 				}
 				
 				/* Compact View Styles - Horizontal Mini Player */
@@ -755,6 +777,8 @@ var SidebarProvider = class {
 				body.compact-view .volume-control,
 				body.compact-view .device-card,
 				body.compact-view .up-next,
+				body.compact-view .queue-section,
+				body.compact-view .playlists-section,
 				body.compact-view .track-details,
 				body.compact-view .progress-times,
 				body.compact-view .sign-out-section {
@@ -940,6 +964,262 @@ var SidebarProvider = class {
 				body.compact-view .btn-play-pause svg {
 					width: 16px !important;
 					height: 16px !important;
+				}
+				
+				/* Aesthetic Immersive View */
+				body.aesthetic-view {
+					background: linear-gradient(180deg, #b19fc2 0%, #8f829a 38%, #5a5c63 100%);
+					color: #f7f7f8;
+					min-height: 100vh;
+				}
+				
+				body.aesthetic-view .bg-gradient {
+					display: none;
+				}
+				
+				body.aesthetic-view .container {
+					padding: 72px 18px 120px;
+					min-height: 100vh;
+					display: flex;
+					flex-direction: column;
+					align-items: center;
+					justify-content: center;
+					gap: 18px;
+				}
+				
+				body.aesthetic-view .header {
+					position: fixed;
+					top: 12px;
+					left: 12px;
+					right: 12px;
+					padding: 10px 12px;
+					background: rgba(20, 20, 22, 0.25);
+					border: 1px solid rgba(255, 255, 255, 0.08);
+					border-radius: 10px;
+					backdrop-filter: blur(12px);
+					-webkit-backdrop-filter: blur(12px);
+					z-index: 12;
+				}
+				
+				body.aesthetic-view .header-title {
+					background: none;
+					-webkit-text-fill-color: currentColor;
+					color: #f7f7f8;
+				}
+				
+				body.aesthetic-view .status-pill {
+					background: rgba(13, 191, 86, 0.15);
+					border-color: rgba(13, 191, 86, 0.4);
+					color: #15d36b;
+					box-shadow: 0 6px 18px rgba(13, 191, 86, 0.25);
+				}
+				
+				body.aesthetic-view .view-toggle-btn,
+				body.aesthetic-view .aesthetic-toggle-btn {
+					background: rgba(255, 255, 255, 0.12);
+					border-color: rgba(255, 255, 255, 0.12);
+					color: #f7f7f8;
+					opacity: 1;
+				}
+				
+				body.aesthetic-view .aesthetic-toggle-btn.active {
+					background: rgba(13, 191, 86, 0.22);
+				}
+				
+				body.aesthetic-view .now-playing-card {
+					background: rgba(255, 255, 255, 0.06);
+					border: 1px solid rgba(255, 255, 255, 0.1);
+					box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+					padding: 16px;
+					max-width: 540px;
+					width: 100%;
+					margin: 0 auto;
+				}
+				
+				body.aesthetic-view .now-playing-card::before {
+					display: none;
+				}
+				
+				body.aesthetic-view .album-container {
+					width: 100%;
+					gap: 12px;
+				}
+				
+				body.aesthetic-view .album-art-wrapper {
+					width: 100%;
+					max-width: 520px;
+				}
+				
+				body.aesthetic-view .album-art {
+					width: 100%;
+					height: auto;
+					border-radius: 14px;
+					background: transparent;
+					box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+					inset: 0;
+					overflow: hidden;
+					aspect-ratio: 1 / 1;
+				}
+				
+				body.aesthetic-view .album-art::after {
+					display: none;
+				}
+				
+				body.aesthetic-view .album-art img {
+					border-radius: 14px;
+					width: 100%;
+					height: 100%;
+					object-fit: cover;
+					animation: none;
+				}
+				
+				body.aesthetic-view .play-indicator {
+					bottom: 12px;
+					right: 12px;
+					background: rgba(0, 0, 0, 0.65);
+					border: 2px solid rgba(255, 255, 255, 0.35);
+					box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+				}
+				
+				body.aesthetic-view .progress-container,
+				body.aesthetic-view .track-details,
+				body.aesthetic-view .compact-track-info,
+				body.aesthetic-view .up-next,
+				body.aesthetic-view .queue-section,
+				body.aesthetic-view .playlists-section,
+				body.aesthetic-view .controls-section,
+				body.aesthetic-view .device-card,
+				body.aesthetic-view .sign-out-section {
+					display: none !important;
+				}
+				
+				body.aesthetic-view .container .control-group {
+					display: none !important;
+				}
+				
+				body.aesthetic-view .no-playback {
+					padding: 0;
+					color: #f1f2f3;
+				}
+				
+				body.aesthetic-view .no-playback-icon {
+					font-size: 48px;
+					opacity: 0.45;
+				}
+				
+				/* Aesthetic footer player */
+				.aesthetic-footer {
+					position: fixed;
+					left: 0;
+					right: 0;
+					bottom: 0;
+					padding: 14px 16px 18px;
+					background: #0c0c0e;
+					color: #f7f7f8;
+					display: none;
+					align-items: center;
+					gap: 12px;
+					box-shadow: 0 -14px 36px rgba(0, 0, 0, 0.35);
+					border-top: 1px solid rgba(255, 255, 255, 0.08);
+					z-index: 15;
+				}
+				
+				body.aesthetic-view .aesthetic-footer {
+					display: flex;
+				}
+				
+				.footer-play-btn {
+					width: 36px;
+					height: 36px;
+					border-radius: 12px;
+					border: none;
+					background: #f7f7f8;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					cursor: pointer;
+					box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+					transition: transform 0.15s ease, box-shadow 0.2s ease;
+				}
+				
+				.footer-play-btn:hover {
+					transform: translateY(-1px);
+					box-shadow: 0 12px 26px rgba(0, 0, 0, 0.45);
+				}
+				
+				.footer-play-btn svg {
+					width: 16px;
+					height: 16px;
+					fill: #0c0c0e;
+					margin-left: 2px;
+				}
+				
+				.footer-info {
+					display: flex;
+					flex-direction: column;
+					gap: 4px;
+					flex: 1;
+					min-width: 0;
+				}
+				
+				.footer-title {
+					font-size: 18px;
+					font-weight: 800;
+					letter-spacing: -0.2px;
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+				}
+				
+				.footer-meta {
+					display: flex;
+					align-items: center;
+					gap: 8px;
+					font-size: 12px;
+					color: #cfd3dc;
+					opacity: 0.9;
+				}
+				
+				.footer-chip {
+					display: inline-flex;
+					align-items: center;
+					gap: 4px;
+					background: rgba(255, 255, 255, 0.08);
+					padding: 4px 8px;
+					border-radius: 12px;
+					font-size: 11px;
+					color: #e8eaed;
+				}
+				
+				.footer-chip svg {
+					width: 12px;
+					height: 12px;
+					fill: currentColor;
+				}
+				
+				.footer-check {
+					width: 32px;
+					height: 32px;
+					border-radius: 50%;
+					background: linear-gradient(135deg, #19c25a 0%, #1ed760 100%);
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					box-shadow: 0 10px 22px rgba(30, 215, 96, 0.35);
+					border: 2px solid rgba(0, 0, 0, 0.35);
+				}
+				
+				.footer-check svg {
+					width: 14px;
+					height: 14px;
+					fill: #0c0c0e;
+				}
+				
+				.footer-shelf {
+					display: flex;
+					align-items: center;
+					gap: 8px;
+					min-width: 0;
 				}
 				
 				/* Now Playing Card - Compact Record Player */
@@ -1172,6 +1452,335 @@ var SidebarProvider = class {
 					text-overflow: ellipsis;
 					opacity: 0.6;
 					margin-top: 2px;
+				}
+				
+				/* Queue Section */
+				.queue-section {
+					margin-top: 16px;
+					padding-top: 16px;
+					border-top: 1px solid rgba(255, 255, 255, 0.08);
+					max-height: 300px;
+					overflow-y: auto;
+				}
+				
+				.queue-header {
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+					margin-bottom: 12px;
+				}
+				
+				.queue-label {
+					font-size: 9px;
+					font-weight: 700;
+					text-transform: uppercase;
+					letter-spacing: 0.8px;
+					color: var(--vscode-descriptionForeground);
+					opacity: 0.5;
+					display: flex;
+					align-items: center;
+					gap: 4px;
+				}
+				
+				.section-toggle {
+					width: 20px;
+					height: 20px;
+					padding: 2px;
+					background: rgba(29, 185, 84, 0.15);
+					border: 1px solid rgba(29, 185, 84, 0.4);
+					border-radius: 4px;
+					cursor: pointer;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					transition: all 0.2s ease;
+					opacity: 0.8;
+				}
+				
+				.section-toggle:hover {
+					opacity: 1;
+					background: rgba(29, 185, 84, 0.25);
+					border-color: rgba(29, 185, 84, 0.6);
+					transform: scale(1.05);
+				}
+				
+				.section-toggle:active {
+					transform: scale(0.95);
+				}
+				
+				.section-toggle svg {
+					width: 12px;
+					height: 12px;
+					transition: transform 0.2s ease;
+					color: #1DB954;
+				}
+				
+				.section-toggle.collapsed svg {
+					transform: rotate(-90deg);
+				}
+				
+				.queue-count {
+					font-size: 9px;
+					color: var(--vscode-descriptionForeground);
+					opacity: 0.6;
+					font-weight: 500;
+				}
+				
+				.queue-list {
+					display: flex;
+					flex-direction: column;
+					gap: 8px;
+					max-height: 300px;
+					overflow-y: auto;
+					overflow-x: hidden;
+				}
+				
+				.queue-item {
+					display: flex;
+					align-items: center;
+					gap: 10px;
+					padding: 8px;
+					border-radius: 8px;
+					background: var(--button-bg);
+					border: 1px solid var(--card-border);
+					transition: all 0.2s ease;
+					cursor: pointer;
+				}
+				
+				.queue-item:hover {
+					background: var(--button-hover-bg);
+					border-color: rgba(29, 185, 84, 0.3);
+					transform: translateX(2px);
+				}
+				
+				.queue-item-art {
+					width: 40px;
+					height: 40px;
+					border-radius: 6px;
+					flex-shrink: 0;
+					overflow: hidden;
+					background: var(--card-bg);
+					display: flex;
+					align-items: center;
+					justify-content: center;
+				}
+				
+				.queue-item-art img {
+					width: 100%;
+					height: 100%;
+					object-fit: cover;
+				}
+				
+				.queue-item-art .vinyl-icon {
+					font-size: 24px;
+					opacity: 0.4;
+				}
+				
+				.queue-item-info {
+					flex: 1;
+					min-width: 0;
+				}
+				
+				.queue-item-name {
+					font-size: 12px;
+					font-weight: 600;
+					color: var(--vscode-foreground);
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					margin-bottom: 2px;
+				}
+				
+				.queue-item-artist {
+					font-size: 10px;
+					color: var(--vscode-descriptionForeground);
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					opacity: 0.7;
+				}
+				
+				.queue-item-duration {
+					font-size: 10px;
+					color: var(--vscode-descriptionForeground);
+					opacity: 0.5;
+					flex-shrink: 0;
+					margin-left: 8px;
+				}
+				
+				.queue-empty {
+					text-align: center;
+					padding: 20px;
+					color: var(--vscode-descriptionForeground);
+					opacity: 0.5;
+					font-size: 11px;
+				}
+				
+				/* Playlists Section */
+				.playlists-section {
+					margin-top: 16px;
+					padding-top: 16px;
+					border-top: 1px solid rgba(255, 255, 255, 0.08);
+				}
+				
+				.playlists-header {
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+					margin-bottom: 12px;
+				}
+				
+				.playlists-label {
+					font-size: 9px;
+					font-weight: 700;
+					text-transform: uppercase;
+					letter-spacing: 0.8px;
+					color: var(--vscode-descriptionForeground);
+					opacity: 0.5;
+					display: flex;
+					align-items: center;
+					gap: 4px;
+				}
+				
+				.queue-list,
+				.playlists-list {
+					transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease, padding 0.3s ease;
+				}
+				
+				.queue-list.collapsed,
+				.playlists-list.collapsed {
+					max-height: 0 !important;
+					opacity: 0;
+					margin: 0 !important;
+					padding: 0 !important;
+					overflow: hidden;
+				}
+				
+				.playlists-list {
+					display: flex;
+					flex-direction: column;
+					gap: 8px;
+					max-height: 400px;
+					overflow-y: auto;
+					overflow-x: hidden;
+				}
+				
+				.playlist-item {
+					display: flex;
+					align-items: center;
+					gap: 10px;
+					padding: 10px;
+					border-radius: 8px;
+					background: var(--button-bg);
+					border: 1px solid var(--card-border);
+					transition: all 0.2s ease;
+					cursor: pointer;
+					position: relative;
+				}
+				
+				.playlist-item:hover {
+					background: var(--button-hover-bg);
+					border-color: rgba(29, 185, 84, 0.3);
+					transform: translateX(2px);
+				}
+				
+				.playlist-item:hover .playlist-play-icon {
+					opacity: 1;
+				}
+				
+				.playlist-item-art {
+					width: 50px;
+					height: 50px;
+					border-radius: 6px;
+					flex-shrink: 0;
+					overflow: hidden;
+					background: var(--card-bg);
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					position: relative;
+				}
+				
+				.playlist-item-art img {
+					width: 100%;
+					height: 100%;
+					object-fit: cover;
+				}
+				
+				.playlist-item-art .vinyl-icon {
+					font-size: 28px;
+					opacity: 0.4;
+				}
+				
+				.playlist-play-icon {
+					position: absolute;
+					top: 50%;
+					left: 50%;
+					transform: translate(-50%, -50%);
+					width: 24px;
+					height: 24px;
+					background: rgba(29, 185, 84, 0.9);
+					border-radius: 50%;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					opacity: 0;
+					transition: opacity 0.2s ease;
+					pointer-events: none;
+				}
+				
+				.playlist-play-icon svg {
+					width: 14px;
+					height: 14px;
+					fill: white;
+					margin-left: 2px;
+				}
+				
+				.playlist-item-info {
+					flex: 1;
+					min-width: 0;
+				}
+				
+				.playlist-item-name {
+					font-size: 12px;
+					font-weight: 600;
+					color: var(--vscode-foreground);
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					margin-bottom: 3px;
+				}
+				
+				.playlist-item-meta {
+					font-size: 10px;
+					color: var(--vscode-descriptionForeground);
+					opacity: 0.7;
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+				}
+				
+				.playlists-loading {
+					text-align: center;
+					padding: 20px;
+					color: var(--vscode-descriptionForeground);
+					opacity: 0.5;
+					font-size: 11px;
+				}
+				
+				.playlists-empty {
+					text-align: center;
+					padding: 20px;
+					color: var(--vscode-descriptionForeground);
+					opacity: 0.5;
+					font-size: 11px;
+				}
+				
+				.btn-load-playlists {
+					width: 100%;
+					margin-top: 8px;
+					padding: 8px 12px;
+					font-size: 11px;
 				}
 				
 				/* Compact Progress Bar */
@@ -1854,6 +2463,12 @@ var SidebarProvider = class {
 					</div>
 					<div class="header-right">
 						${isAuthenticated ? `
+					<button id="aesthetic-toggle" class="aesthetic-toggle-btn" title="Enable Aesthetic Mode">
+						<svg viewBox="0 0 24 24" fill="currentColor">
+							<path d="M12 1.5c-.66 0-1.23.42-1.42 1.05l-.96 3.04-3.04.96c-.63.19-1.05.76-1.05 1.42s.42 1.23 1.05 1.42l3.04.96.96 3.04c.19.63.76 1.05 1.42 1.05s1.23-.42 1.42-1.05l.96-3.04 3.04-.96c.63-.19 1.05-.76 1.05-1.42s-.42-1.23-1.05-1.42l-3.04-.96-.96-3.04C13.23 1.92 12.66 1.5 12 1.5z"/>
+							<path d="M6 15.5c-.48 0-.89.32-1.01.78l-.33 1.22-1.22.33c-.46.12-.78.53-.78 1.01s.32.89.78 1.01l1.22.33.33 1.22c.12.46.53.78 1.01.78s.89-.32 1.01-.78l.33-1.22 1.22-.33c.46-.12.78-.53.78-1.01s-.32-.89-.78-1.01l-1.22-.33-.33-1.22c-.12-.46-.53-.78-1.01-.78z"/>
+						</svg>
+					</button>
 					<button id="view-toggle" class="view-toggle-btn" title="Toggle Compact View">
 						<svg class="icon-expand" viewBox="0 0 24 24" fill="currentColor">
 							<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
@@ -2048,6 +2663,32 @@ var SidebarProvider = class {
 					</div>
 				</div>
 				
+				<div class="playlists-section" id="playlists-section" style="display: ${isAuthenticated ? "block" : "none"};">
+					<div class="playlists-header">
+						<div class="playlists-label">
+							<svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+								<path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v14.18l4.5-2.18-.82-1.64L17 18.64V6z"/>
+							</svg>
+							Your Playlists
+						</div>
+						<button class="section-toggle" id="playlists-toggle" title="Toggle playlists visibility">
+							<svg viewBox="0 0 24 24" fill="currentColor">
+								<path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+							</svg>
+						</button>
+					</div>
+					<div id="playlists-list" class="playlists-list">
+						<div class="playlists-loading" id="playlists-loading" style="display: none;">Loading playlists...</div>
+						<div class="playlists-empty" id="playlists-empty" style="display: none;">No playlists found</div>
+					</div>
+					<button id="load-playlists-btn" class="btn btn-secondary btn-load-playlists">
+						<svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+							<path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+						</svg>
+						<span>Load Playlists</span>
+					</button>
+				</div>
+				
 				<div class="sign-out-section">
 					<button id="logout-btn" class="btn btn-logout">
 						<svg class="icon" viewBox="0 0 24 24" fill="currentColor">
@@ -2055,6 +2696,31 @@ var SidebarProvider = class {
 						</svg>
 						<span>Sign Out</span>
 					</button>
+				</div>
+			</div>
+
+			<div id="aesthetic-footer" class="aesthetic-footer hidden">
+				<button id="footer-play" class="footer-play-btn" title="Play/Pause">
+					<svg viewBox="0 0 24 24" fill="currentColor">
+						<path d="M8 5v14l11-7z"/>
+					</svg>
+				</button>
+				<div class="footer-info">
+					<div id="footer-title" class="footer-title">Not playing</div>
+					<div class="footer-meta">
+						<span id="footer-meta">Connect to Spotify to start playing</span>
+						<span class="footer-chip" id="footer-chip">
+							<svg viewBox="0 0 24 24" fill="currentColor">
+								<path d="M10 20v-6H5l7-10v6h5l-7 10z"/>
+							</svg>
+							Immersive
+						</span>
+					</div>
+				</div>
+				<div class="footer-check" title="Active device">
+					<svg viewBox="0 0 24 24" fill="currentColor">
+						<path d="M9 16.2l-3.5-3.5L4 14.2l5 5 12-12-1.4-1.4z"/>
+					</svg>
 				</div>
 			</div>
 
@@ -2075,6 +2741,9 @@ var SidebarProvider = class {
 				let isUserAdjustingVolume = false; // Track if user is actively adjusting volume
 				let lastUserSetVolume = null; // Track the last volume the user set
 				let volumeUpdateTimestamp = 0; // Track when we last sent a volume update
+				const aestheticFooter = document.getElementById('aesthetic-footer');
+				
+				let setViewMode = () => {};
 				
 				// Login button
 				const loginBtn = document.getElementById('login-btn');
@@ -2103,29 +2772,57 @@ var SidebarProvider = class {
 				// View toggle button
 				const viewToggleBtn = document.getElementById('view-toggle');
 				if (viewToggleBtn) {
+					const expandIcon = viewToggleBtn.querySelector('.icon-expand');
+					const collapseIcon = viewToggleBtn.querySelector('.icon-collapse');
+					
+					setViewMode = (isCompact) => {
+						document.body.classList.toggle('compact-view', isCompact);
+						if (expandIcon && collapseIcon) {
+							expandIcon.classList.toggle('hidden', isCompact);
+							collapseIcon.classList.toggle('hidden', !isCompact);
+						}
+						localStorage.setItem('codebeats-view-mode', isCompact ? 'compact' : 'full');
+					};
+					
 					// Load saved preference
 					const savedView = localStorage.getItem('codebeats-view-mode');
 					if (savedView === 'compact') {
-						document.body.classList.add('compact-view');
-						viewToggleBtn.querySelector('.icon-expand').classList.add('hidden');
-						viewToggleBtn.querySelector('.icon-collapse').classList.remove('hidden');
+						setViewMode(true);
+					} else {
+						setViewMode(false);
 					}
 					
 					viewToggleBtn.addEventListener('click', () => {
-						const isCompact = document.body.classList.toggle('compact-view');
-						
-						// Toggle icons
-						const expandIcon = viewToggleBtn.querySelector('.icon-expand');
-						const collapseIcon = viewToggleBtn.querySelector('.icon-collapse');
-						if (isCompact) {
-							expandIcon.classList.add('hidden');
-							collapseIcon.classList.remove('hidden');
-							localStorage.setItem('codebeats-view-mode', 'compact');
-						} else {
-							expandIcon.classList.remove('hidden');
-							collapseIcon.classList.add('hidden');
-							localStorage.setItem('codebeats-view-mode', 'full');
-						}
+						const isCompact = !document.body.classList.contains('compact-view');
+						setViewMode(isCompact);
+					});
+				}
+				
+				const aestheticToggleBtn = document.getElementById('aesthetic-toggle');
+				
+				function applyAestheticMode(enabled) {
+					document.body.classList.toggle('aesthetic-view', enabled);
+					if (aestheticToggleBtn) {
+						aestheticToggleBtn.classList.toggle('active', enabled);
+					}
+					if (enabled && viewToggleBtn) {
+						setViewMode(false);
+					}
+					if (!enabled && aestheticFooter) {
+						aestheticFooter.classList.add('hidden');
+					}
+					localStorage.setItem('codebeats-aesthetic-mode', enabled ? 'on' : 'off');
+				}
+				
+				if (aestheticToggleBtn) {
+					const savedAesthetic = localStorage.getItem('codebeats-aesthetic-mode') === 'on';
+					if (savedAesthetic) {
+						applyAestheticMode(true);
+					}
+					
+					aestheticToggleBtn.addEventListener('click', () => {
+						const enable = !document.body.classList.contains('aesthetic-view');
+						applyAestheticMode(enable);
 					});
 				}
 				
@@ -2152,6 +2849,74 @@ var SidebarProvider = class {
 						vscode.postMessage({ type: 'selectDevice' });
 					});
 				}
+				
+				// Load playlists button
+				const loadPlaylistsBtn = document.getElementById('load-playlists-btn');
+				if (loadPlaylistsBtn) {
+					loadPlaylistsBtn.addEventListener('click', () => {
+						const loadingEl = document.getElementById('playlists-loading');
+						const emptyEl = document.getElementById('playlists-empty');
+						const listEl = document.getElementById('playlists-list');
+						
+						if (loadingEl) loadingEl.style.display = 'block';
+						if (emptyEl) emptyEl.style.display = 'none';
+						if (listEl) listEl.innerHTML = '';
+						
+						vscode.postMessage({ type: 'getUserPlaylists' });
+					});
+				}
+				
+				// Queue toggle button setup function (called when queue is created/updated)
+				function setupQueueToggle() {
+					const queueToggle = document.getElementById('queue-toggle');
+					if (!queueToggle) return;
+					
+					// Remove existing listener to avoid duplicates
+					const newToggle = queueToggle.cloneNode(true);
+					queueToggle.parentNode?.replaceChild(newToggle, queueToggle);
+					
+					// Load saved preference
+					const queueCollapsed = localStorage.getItem('codebeats-queue-collapsed') === 'true';
+					const queueList = document.getElementById('queue-list');
+					if (queueList) {
+						if (queueCollapsed) {
+							queueList.classList.add('collapsed');
+							newToggle.classList.add('collapsed');
+						}
+					}
+					
+					newToggle.addEventListener('click', () => {
+						const queueList = document.getElementById('queue-list');
+						if (!queueList) return;
+						
+						const isCollapsed = queueList.classList.toggle('collapsed');
+						newToggle.classList.toggle('collapsed', isCollapsed);
+						localStorage.setItem('codebeats-queue-collapsed', isCollapsed.toString());
+					});
+				}
+				
+				// Playlists toggle button
+				const playlistsToggle = document.getElementById('playlists-toggle');
+				if (playlistsToggle) {
+					// Load saved preference
+					const playlistsCollapsed = localStorage.getItem('codebeats-playlists-collapsed') === 'true';
+					const playlistsList = document.getElementById('playlists-list');
+					if (playlistsList) {
+						if (playlistsCollapsed) {
+							playlistsList.classList.add('collapsed');
+							playlistsToggle.classList.add('collapsed');
+						}
+					}
+					
+					playlistsToggle.addEventListener('click', () => {
+						const playlistsList = document.getElementById('playlists-list');
+						if (!playlistsList) return;
+						
+						const isCollapsed = playlistsList.classList.toggle('collapsed');
+						playlistsToggle.classList.toggle('collapsed', isCollapsed);
+						localStorage.setItem('codebeats-playlists-collapsed', isCollapsed.toString());
+					});
+				}
 
 				// Playback controls
 				const playPauseBtn = document.getElementById('play-pause-btn');
@@ -2162,6 +2927,7 @@ var SidebarProvider = class {
 				const shuffleBtn = document.getElementById('shuffle-btn');
 				const repeatBtn = document.getElementById('repeat-btn');
 				const likeBtn = document.getElementById('like-btn');
+				const footerPlayBtn = document.getElementById('footer-play');
 				
 				if (playPauseBtn) {
 					playPauseBtn.addEventListener('click', () => {
@@ -2202,6 +2968,12 @@ var SidebarProvider = class {
 							setTimeout(() => svg.classList.remove('heart-animation'), 300);
 						}
 						vscode.postMessage({ type: 'toggleLike' });
+					});
+				}
+				
+				if (footerPlayBtn) {
+					footerPlayBtn.addEventListener('click', () => {
+						vscode.postMessage({ type: 'togglePlayPause' });
 					});
 				}
 				
@@ -2354,6 +3126,50 @@ var SidebarProvider = class {
 					}
 				}
 				
+				function updateAestheticFooter(data) {
+					const footer = document.getElementById('aesthetic-footer');
+					if (!footer) return;
+					
+					const isAesthetic = document.body.classList.contains('aesthetic-view');
+					const titleEl = document.getElementById('footer-title');
+					const metaEl = document.getElementById('footer-meta');
+					const chipEl = document.getElementById('footer-chip');
+					
+					if (!isAesthetic || !data || data.noDevice || !data.track) {
+						footer.classList.add('hidden');
+						return;
+					}
+					
+					footer.classList.remove('hidden');
+					
+					if (titleEl) {
+						titleEl.textContent = data.track || 'Not playing';
+						titleEl.title = data.track || '';
+					}
+					
+					if (metaEl) {
+						const artistPart = data.artist || 'Unknown Artist';
+						const albumPart = data.album ? \` \u2022 \${data.album}\` : '';
+						metaEl.textContent = \`\${artistPart}\${albumPart}\`;
+						metaEl.title = \`\${artistPart}\${albumPart}\`;
+					}
+					
+					if (chipEl) {
+						chipEl.innerHTML = \`
+							<svg viewBox="0 0 24 24" fill="currentColor">
+								<path d="M10 20v-6H5l7-10v6h5l-7 10z"/>
+							</svg>
+							\${data.deviceName || 'Immersive'}
+						\`;
+					}
+					
+					if (footerPlayBtn) {
+						footerPlayBtn.innerHTML = data.isPlaying ?
+							'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>' :
+							'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+					}
+				}
+				
 				// Smooth progress animation
 				function animateProgress() {
 					if (!isPlaying || !lastDurationMs) {
@@ -2412,6 +3228,7 @@ var SidebarProvider = class {
 						currentTrackId = null;
 						stopProgressAnimation();
 						updatePlayPauseIcon();
+						updateAestheticFooter(data);
 						return;
 					}
 
@@ -2482,7 +3299,44 @@ var SidebarProvider = class {
 									<div class="next-track-artist" title="\${data.nextArtist}">\${data.nextArtist || 'Unknown Artist'}</div>
 								</div>
 							\` : ''}
+							\${data.queue && data.queue.length > 0 ? \`
+								<div class="queue-section" id="queue-section">
+									<div class="queue-header">
+										<div class="queue-label">
+											<svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+												<path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v14.18l4.5-2.18-.82-1.64L17 18.64V6z"/>
+											</svg>
+											Queue \u2022 <span class="queue-count">\${data.queue.length} track\${data.queue.length !== 1 ? 's' : ''}</span>
+										</div>
+										<button class="section-toggle" id="queue-toggle" title="Toggle queue visibility">
+											<svg viewBox="0 0 24 24" fill="currentColor">
+												<path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+											</svg>
+										</button>
+									</div>
+									<div class="queue-list" id="queue-list">
+										\${data.queue.map((track, index) => \`
+											<div class="queue-item" data-track-id="\${track.id}">
+												<div class="queue-item-art">
+													\${track.albumArt ? 
+														\`<img src="\${track.albumArt}" alt="Album art" />\` : 
+														\`<span class="vinyl-icon">\u{1F4BF}</span>\`
+													}
+												</div>
+												<div class="queue-item-info">
+													<div class="queue-item-name" title="\${track.name}">\${track.name}</div>
+													<div class="queue-item-artist" title="\${track.artist}">\${track.artist}</div>
+												</div>
+												\${track.durationMs ? \`<div class="queue-item-duration">\${formatTime(track.durationMs)}</div>\` : ''}
+											</div>
+										\`).join('')}
+									</div>
+								</div>
+							\` : ''}
 						\`;
+						
+						// Setup queue toggle after queue section is created
+						setTimeout(() => setupQueueToggle(), 50);
 					} else {
 						// Track hasn't changed, just update dynamic elements
 						const albumArt = nowPlayingEl.querySelector('.album-art');
@@ -2525,6 +3379,14 @@ var SidebarProvider = class {
 					if (progressTimes.length >= 2 && data.progressMs && data.durationMs) {
 						progressTimes[0].textContent = formatTime(data.progressMs);
 						progressTimes[1].textContent = formatTime(data.durationMs);
+					}
+					
+					// Update queue if present
+					if (data.queue) {
+						updateQueue(data.queue);
+					} else if (trackChanged) {
+						// If track changed but no queue, setup toggle anyway in case queue section exists
+						setTimeout(() => setupQueueToggle(), 100);
 					}
 					
 					// Update device name
@@ -2611,6 +3473,7 @@ var SidebarProvider = class {
 						}
 					}
 					
+					updateAestheticFooter(data);
 					updatePlayPauseIcon();
 				}
 				
@@ -2626,11 +3489,146 @@ var SidebarProvider = class {
 					}
 				}
 
+				// Update queue section
+				function updateQueue(queue) {
+					const queueSection = document.getElementById('queue-section');
+					const queueList = document.getElementById('queue-list');
+					
+					if (!queue || !Array.isArray(queue) || queue.length === 0) {
+						if (queueSection) {
+							queueSection.style.display = 'none';
+						}
+						return;
+					}
+					
+					if (!queueSection || !queueList) {
+						// Queue section doesn't exist yet, it will be created in updateNowPlaying
+						return;
+					}
+					
+					// Preserve collapsed state
+					const wasCollapsed = queueList.classList.contains('collapsed');
+					
+					queueList.innerHTML = queue.map((track, index) => \`
+						<div class="queue-item" data-track-id="\${track.id}">
+							<div class="queue-item-art">
+								\${track.albumArt ? 
+									\`<img src="\${track.albumArt}" alt="Album art" />\` : 
+									\`<span class="vinyl-icon">\u{1F4BF}</span>\`
+								}
+							</div>
+							<div class="queue-item-info">
+								<div class="queue-item-name" title="\${track.name}">\${track.name}</div>
+								<div class="queue-item-artist" title="\${track.artist}">\${track.artist}</div>
+							</div>
+							\${track.durationMs ? \`<div class="queue-item-duration">\${formatTime(track.durationMs)}</div>\` : ''}
+						</div>
+					\`).join('');
+					
+					// Restore collapsed state
+					if (wasCollapsed) {
+						queueList.classList.add('collapsed');
+					}
+					
+					// Update queue count
+					const queueCount = queueSection.querySelector('.queue-count');
+					if (queueCount) {
+						queueCount.textContent = \`\${queue.length} track\${queue.length !== 1 ? 's' : ''}\`;
+					}
+					
+					// Also update in the label if it exists
+					const queueLabel = queueSection.querySelector('.queue-label');
+					if (queueLabel) {
+						const countSpan = queueLabel.querySelector('.queue-count');
+						if (countSpan) {
+							countSpan.textContent = \`\${queue.length} track\${queue.length !== 1 ? 's' : ''}\`;
+						}
+					}
+					
+					queueSection.style.display = 'block';
+					
+					// Re-setup toggle button after queue is updated
+					setupQueueToggle();
+				}
+				
+				// Update playlists display
+				function updatePlaylists(playlists) {
+					const playlistsList = document.getElementById('playlists-list');
+					const playlistsLoading = document.getElementById('playlists-loading');
+					const playlistsEmpty = document.getElementById('playlists-empty');
+					const loadBtn = document.getElementById('load-playlists-btn');
+					
+					if (!playlistsList) return;
+					
+					if (playlistsLoading) playlistsLoading.style.display = 'none';
+					
+					// Preserve collapsed state
+					const wasCollapsed = playlistsList.classList.contains('collapsed');
+					
+					if (!playlists || !Array.isArray(playlists) || playlists.length === 0) {
+						if (playlistsEmpty) playlistsEmpty.style.display = 'block';
+						playlistsList.innerHTML = '';
+						return;
+					}
+					
+					if (playlistsEmpty) playlistsEmpty.style.display = 'none';
+					
+					playlistsList.innerHTML = playlists.map((playlist) => \`
+						<div class="playlist-item" data-playlist-id="\${playlist.id}">
+							<div class="playlist-item-art">
+								\${playlist.imageUrl ? 
+									\`<img src="\${playlist.imageUrl}" alt="Playlist cover" />\` : 
+									\`<span class="vinyl-icon">\u{1F4BF}</span>\`
+								}
+								<div class="playlist-play-icon">
+									<svg viewBox="0 0 24 24" fill="currentColor">
+										<path d="M8 5v14l11-7z"/>
+									</svg>
+								</div>
+							</div>
+							<div class="playlist-item-info">
+								<div class="playlist-item-name" title="\${playlist.name}">\${playlist.name}</div>
+								<div class="playlist-item-meta" title="\${playlist.owner} \u2022 \${playlist.trackCount} tracks">
+									\${playlist.owner} \u2022 \${playlist.trackCount} track\${playlist.trackCount !== 1 ? 's' : ''}
+								</div>
+							</div>
+						</div>
+					\`).join('');
+					
+					// Restore collapsed state
+					if (wasCollapsed) {
+						playlistsList.classList.add('collapsed');
+					}
+					
+					// Add click handlers to playlist items
+					playlistsList.querySelectorAll('.playlist-item').forEach(item => {
+						item.addEventListener('click', () => {
+							const playlistId = item.getAttribute('data-playlist-id');
+							if (playlistId) {
+								vscode.postMessage({ type: 'playPlaylist', playlistId: playlistId });
+							}
+						});
+					});
+					
+					// Hide load button after playlists are loaded
+					if (loadBtn) {
+						loadBtn.style.display = 'none';
+					}
+				}
+				
 				// Listen for messages
 				window.addEventListener('message', event => {
 					const message = event.data;
 					if (message.type === 'playbackInfo') {
 						updateNowPlaying(message.data);
+						// Update queue if present in playback info
+						if (message.data.queue) {
+							updateQueue(message.data.queue);
+						}
+					} else if (message.type === 'queueData') {
+						updateQueue(message.data?.queue);
+					} else if (message.type === 'playlistsData') {
+						updatePlaylists(message.data);
 					}
 				});
 
@@ -2640,6 +3638,9 @@ var SidebarProvider = class {
 				
 				if (authenticated) {
 					vscode.postMessage({ type: 'getCurrentPlayback' });
+					
+					// Setup queue toggle on initial load if queue section exists
+					setTimeout(() => setupQueueToggle(), 200);
 					
 					// Poll for updates only when playing
 					pollInterval = setInterval(() => {
@@ -2671,7 +3672,7 @@ var path = __toESM(require("path"));
 var REDIRECT_PORT = 4567;
 var REDIRECT_URI = `https://127.0.0.1:${REDIRECT_PORT}/callback`;
 var TOKEN_SECRET_KEY = "music-player.spotify.tokens";
-var SPOTIFY_SCOPES = "user-read-playback-state user-modify-playback-state user-library-read user-library-modify";
+var SPOTIFY_SCOPES = "user-read-playback-state user-modify-playback-state user-library-read user-library-modify playlist-read-private playlist-read-collaborative";
 var DEBUG = false;
 var sideBar;
 var statusBarItem;
@@ -2731,7 +3732,10 @@ async function activate(context) {
     vscode2.commands.registerCommand("music-player.setVolume", (volume) => setVolume(context, volume)),
     vscode2.commands.registerCommand("music-player.toggleShuffle", () => toggleShuffle(context)),
     vscode2.commands.registerCommand("music-player.cycleRepeat", () => cycleRepeat(context)),
-    vscode2.commands.registerCommand("music-player.toggleLike", () => toggleLike(context))
+    vscode2.commands.registerCommand("music-player.toggleLike", () => toggleLike(context)),
+    vscode2.commands.registerCommand("music-player.getQueue", () => getQueue(context)),
+    vscode2.commands.registerCommand("music-player.getUserPlaylists", () => getUserPlaylists(context)),
+    vscode2.commands.registerCommand("music-player.playPlaylist", (playlistId) => playPlaylist(context, playlistId))
   ];
   statusBarItem = vscode2.window.createStatusBarItem(vscode2.StatusBarAlignment.Right, 100);
   statusBarItem.command = "music-player.statusBarClick";
@@ -3044,6 +4048,7 @@ async function getCurrentPlayback(context) {
     isLiked,
     nextTrack: queueData?.nextTrack,
     nextArtist: queueData?.nextArtist,
+    queue: queueData?.queue || [],
     deviceName: data.device?.name,
     deviceType: data.device?.type
   };
@@ -3156,12 +4161,17 @@ async function getQueue(context) {
     return void 0;
   }
   const nextTrack2 = data.queue[0];
-  if (!nextTrack2) {
-    return void 0;
-  }
+  const queue = data.queue.map((track) => ({
+    id: track.id,
+    name: track.name,
+    artist: track.artists?.map((a) => a.name).join(", ") || "Unknown Artist",
+    albumArt: track.album?.images?.[2]?.url || track.album?.images?.[1]?.url || track.album?.images?.[0]?.url,
+    durationMs: track.duration_ms
+  }));
   return {
-    nextTrack: nextTrack2.name,
-    nextArtist: nextTrack2.artists?.map((a) => a.name).join(", ")
+    nextTrack: nextTrack2?.name,
+    nextArtist: nextTrack2?.artists?.map((a) => a.name).join(", "),
+    queue
   };
 }
 async function listDevices(context) {
@@ -3200,6 +4210,99 @@ async function listDevices(context) {
     return [];
   }
   return (data.devices || []).map((d) => ({ id: d.id, name: d.name, is_active: d.is_active }));
+}
+async function getUserPlaylists(context) {
+  const tokenSet = await ensureValidToken(context);
+  if (!tokenSet) {
+    vscode2.window.showErrorMessage("Not authenticated with Spotify. Please log in.");
+    return [];
+  }
+  const playlists = [];
+  let url = "https://api.spotify.com/v1/me/playlists?limit=50";
+  while (url) {
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${tokenSet.accessToken}` }
+    });
+    if (!response.ok) {
+      const body = await safeReadBody(response);
+      if (DEBUG) {
+        console.error(`API Error - Endpoint: ${url} - Status: ${response.status} ${response.statusText} - Body: ${body ?? "No response body"}`);
+      }
+      if (response.status === 403) {
+        const action = await vscode2.window.showErrorMessage(
+          `Spotify API access denied (403 Forbidden). Playlist access requires playlist-read-private and playlist-read-collaborative scopes. Please re-authenticate.`,
+          "Re-authenticate",
+          "Learn More"
+        );
+        if (action === "Re-authenticate") {
+          vscode2.commands.executeCommand("music-player.logout");
+          setTimeout(() => vscode2.commands.executeCommand("music-player.login"), 1e3);
+        } else if (action === "Learn More") {
+          vscode2.env.openExternal(vscode2.Uri.parse("https://developer.spotify.com/documentation/web-api/concepts/scopes"));
+        }
+      } else {
+        vscode2.window.showErrorMessage(`Failed to fetch playlists: ${response.status} ${response.statusText}`);
+      }
+      break;
+    }
+    const data = await safeJsonParse(response);
+    if (!data || !data.items) {
+      break;
+    }
+    playlists.push(...data.items.map((playlist) => ({
+      id: playlist.id,
+      name: playlist.name,
+      description: playlist.description || "",
+      imageUrl: playlist.images?.[0]?.url || playlist.images?.[1]?.url,
+      owner: playlist.owner?.display_name || playlist.owner?.id || "Unknown",
+      trackCount: playlist.tracks?.total || 0
+    })));
+    url = data.next || void 0;
+  }
+  return playlists;
+}
+async function playPlaylist(context, playlistId) {
+  const tokenSet = await ensureValidToken(context);
+  if (!tokenSet) {
+    vscode2.window.showErrorMessage("Not authenticated with Spotify. Please log in.");
+    return;
+  }
+  const url = "https://api.spotify.com/v1/me/player/play";
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: {
+      "Authorization": `Bearer ${tokenSet.accessToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      context_uri: `spotify:playlist:${playlistId}`
+    })
+  });
+  if (!response.ok) {
+    const body = await safeReadBody(response);
+    if (DEBUG) {
+      console.error(`API Error - Endpoint: ${url} - Status: ${response.status} ${response.statusText} - Body: ${body ?? "No response body"}`);
+    }
+    if (response.status === 404 && body?.includes("NO_ACTIVE_DEVICE")) {
+      const action = await vscode2.window.showInformationMessage(
+        "No active Spotify device found. Please open Spotify on your computer, phone, or web player.",
+        "Select Device",
+        "Open Spotify Web"
+      );
+      if (action === "Select Device") {
+        vscode2.commands.executeCommand("music-player.selectDevice");
+      } else if (action === "Open Spotify Web") {
+        vscode2.env.openExternal(vscode2.Uri.parse("https://open.spotify.com"));
+      }
+    } else {
+      vscode2.window.showErrorMessage(`Failed to play playlist: ${response.status} ${response.statusText}`);
+    }
+    return;
+  }
+  setTimeout(async () => {
+    const updated = await getCurrentPlayback(context);
+    sideBar?.sendPlaybackInfo(updated);
+  }, 1e3);
 }
 async function transferPlayback(context, deviceId, play2 = true) {
   const tokenSet = await ensureValidToken(context);

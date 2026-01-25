@@ -311,8 +311,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					50% { opacity: 0.6; transform: scale(0.9); }
 				}
 				
-				/* View Toggle Button */
-				.view-toggle-btn {
+				/* View/Aesthetic Toggle Buttons */
+				.view-toggle-btn,
+				.aesthetic-toggle-btn {
 					width: 24px;
 					height: 24px;
 					padding: 4px;
@@ -327,20 +328,30 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					opacity: 0.7;
 				}
 				
-				.view-toggle-btn:hover {
+				.view-toggle-btn:hover,
+				.aesthetic-toggle-btn:hover {
 					background: var(--button-hover-bg);
 					opacity: 1;
 					transform: scale(1.05);
 				}
 				
-				.view-toggle-btn:active {
+				.view-toggle-btn:active,
+				.aesthetic-toggle-btn:active {
 					transform: scale(0.95);
 				}
 				
-				.view-toggle-btn svg {
+				.view-toggle-btn svg,
+				.aesthetic-toggle-btn svg {
 					width: 14px;
 					height: 14px;
 					color: var(--vscode-foreground);
+				}
+				
+				.aesthetic-toggle-btn.active {
+					background: rgba(29, 185, 84, 0.18);
+					border-color: rgba(29, 185, 84, 0.4);
+					opacity: 1;
+					box-shadow: 0 4px 12px rgba(29, 185, 84, 0.35);
 				}
 				
 				/* Compact View Styles - Horizontal Mini Player */
@@ -536,6 +547,262 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 				body.compact-view .btn-play-pause svg {
 					width: 16px !important;
 					height: 16px !important;
+				}
+				
+				/* Aesthetic Immersive View */
+				body.aesthetic-view {
+					background: linear-gradient(180deg, #b19fc2 0%, #8f829a 38%, #5a5c63 100%);
+					color: #f7f7f8;
+					min-height: 100vh;
+				}
+				
+				body.aesthetic-view .bg-gradient {
+					display: none;
+				}
+				
+				body.aesthetic-view .container {
+					padding: 72px 18px 120px;
+					min-height: 100vh;
+					display: flex;
+					flex-direction: column;
+					align-items: center;
+					justify-content: center;
+					gap: 18px;
+				}
+				
+				body.aesthetic-view .header {
+					position: fixed;
+					top: 12px;
+					left: 12px;
+					right: 12px;
+					padding: 10px 12px;
+					background: rgba(20, 20, 22, 0.25);
+					border: 1px solid rgba(255, 255, 255, 0.08);
+					border-radius: 10px;
+					backdrop-filter: blur(12px);
+					-webkit-backdrop-filter: blur(12px);
+					z-index: 12;
+				}
+				
+				body.aesthetic-view .header-title {
+					background: none;
+					-webkit-text-fill-color: currentColor;
+					color: #f7f7f8;
+				}
+				
+				body.aesthetic-view .status-pill {
+					background: rgba(13, 191, 86, 0.15);
+					border-color: rgba(13, 191, 86, 0.4);
+					color: #15d36b;
+					box-shadow: 0 6px 18px rgba(13, 191, 86, 0.25);
+				}
+				
+				body.aesthetic-view .view-toggle-btn,
+				body.aesthetic-view .aesthetic-toggle-btn {
+					background: rgba(255, 255, 255, 0.12);
+					border-color: rgba(255, 255, 255, 0.12);
+					color: #f7f7f8;
+					opacity: 1;
+				}
+				
+				body.aesthetic-view .aesthetic-toggle-btn.active {
+					background: rgba(13, 191, 86, 0.22);
+				}
+				
+				body.aesthetic-view .now-playing-card {
+					background: rgba(255, 255, 255, 0.06);
+					border: 1px solid rgba(255, 255, 255, 0.1);
+					box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+					padding: 16px;
+					max-width: 540px;
+					width: 100%;
+					margin: 0 auto;
+				}
+				
+				body.aesthetic-view .now-playing-card::before {
+					display: none;
+				}
+				
+				body.aesthetic-view .album-container {
+					width: 100%;
+					gap: 12px;
+				}
+				
+				body.aesthetic-view .album-art-wrapper {
+					width: 100%;
+					max-width: 520px;
+				}
+				
+				body.aesthetic-view .album-art {
+					width: 100%;
+					height: auto;
+					border-radius: 14px;
+					background: transparent;
+					box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+					inset: 0;
+					overflow: hidden;
+					aspect-ratio: 1 / 1;
+				}
+				
+				body.aesthetic-view .album-art::after {
+					display: none;
+				}
+				
+				body.aesthetic-view .album-art img {
+					border-radius: 14px;
+					width: 100%;
+					height: 100%;
+					object-fit: cover;
+					animation: none;
+				}
+				
+				body.aesthetic-view .play-indicator {
+					bottom: 12px;
+					right: 12px;
+					background: rgba(0, 0, 0, 0.65);
+					border: 2px solid rgba(255, 255, 255, 0.35);
+					box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+				}
+				
+				body.aesthetic-view .progress-container,
+				body.aesthetic-view .track-details,
+				body.aesthetic-view .compact-track-info,
+				body.aesthetic-view .up-next,
+				body.aesthetic-view .queue-section,
+				body.aesthetic-view .playlists-section,
+				body.aesthetic-view .controls-section,
+				body.aesthetic-view .device-card,
+				body.aesthetic-view .sign-out-section {
+					display: none !important;
+				}
+				
+				body.aesthetic-view .container .control-group {
+					display: none !important;
+				}
+				
+				body.aesthetic-view .no-playback {
+					padding: 0;
+					color: #f1f2f3;
+				}
+				
+				body.aesthetic-view .no-playback-icon {
+					font-size: 48px;
+					opacity: 0.45;
+				}
+				
+				/* Aesthetic footer player */
+				.aesthetic-footer {
+					position: fixed;
+					left: 0;
+					right: 0;
+					bottom: 0;
+					padding: 14px 16px 18px;
+					background: #0c0c0e;
+					color: #f7f7f8;
+					display: none;
+					align-items: center;
+					gap: 12px;
+					box-shadow: 0 -14px 36px rgba(0, 0, 0, 0.35);
+					border-top: 1px solid rgba(255, 255, 255, 0.08);
+					z-index: 15;
+				}
+				
+				body.aesthetic-view .aesthetic-footer {
+					display: flex;
+				}
+				
+				.footer-play-btn {
+					width: 36px;
+					height: 36px;
+					border-radius: 12px;
+					border: none;
+					background: #f7f7f8;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					cursor: pointer;
+					box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+					transition: transform 0.15s ease, box-shadow 0.2s ease;
+				}
+				
+				.footer-play-btn:hover {
+					transform: translateY(-1px);
+					box-shadow: 0 12px 26px rgba(0, 0, 0, 0.45);
+				}
+				
+				.footer-play-btn svg {
+					width: 16px;
+					height: 16px;
+					fill: #0c0c0e;
+					margin-left: 2px;
+				}
+				
+				.footer-info {
+					display: flex;
+					flex-direction: column;
+					gap: 4px;
+					flex: 1;
+					min-width: 0;
+				}
+				
+				.footer-title {
+					font-size: 18px;
+					font-weight: 800;
+					letter-spacing: -0.2px;
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+				}
+				
+				.footer-meta {
+					display: flex;
+					align-items: center;
+					gap: 8px;
+					font-size: 12px;
+					color: #cfd3dc;
+					opacity: 0.9;
+				}
+				
+				.footer-chip {
+					display: inline-flex;
+					align-items: center;
+					gap: 4px;
+					background: rgba(255, 255, 255, 0.08);
+					padding: 4px 8px;
+					border-radius: 12px;
+					font-size: 11px;
+					color: #e8eaed;
+				}
+				
+				.footer-chip svg {
+					width: 12px;
+					height: 12px;
+					fill: currentColor;
+				}
+				
+				.footer-check {
+					width: 32px;
+					height: 32px;
+					border-radius: 50%;
+					background: linear-gradient(135deg, #19c25a 0%, #1ed760 100%);
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					box-shadow: 0 10px 22px rgba(30, 215, 96, 0.35);
+					border: 2px solid rgba(0, 0, 0, 0.35);
+				}
+				
+				.footer-check svg {
+					width: 14px;
+					height: 14px;
+					fill: #0c0c0e;
+				}
+				
+				.footer-shelf {
+					display: flex;
+					align-items: center;
+					gap: 8px;
+					min-width: 0;
 				}
 				
 				/* Now Playing Card - Compact Record Player */
@@ -1779,6 +2046,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					</div>
 					<div class="header-right">
 						${isAuthenticated ? `
+					<button id="aesthetic-toggle" class="aesthetic-toggle-btn" title="Enable Aesthetic Mode">
+						<svg viewBox="0 0 24 24" fill="currentColor">
+							<path d="M12 1.5c-.66 0-1.23.42-1.42 1.05l-.96 3.04-3.04.96c-.63.19-1.05.76-1.05 1.42s.42 1.23 1.05 1.42l3.04.96.96 3.04c.19.63.76 1.05 1.42 1.05s1.23-.42 1.42-1.05l.96-3.04 3.04-.96c.63-.19 1.05-.76 1.05-1.42s-.42-1.23-1.05-1.42l-3.04-.96-.96-3.04C13.23 1.92 12.66 1.5 12 1.5z"/>
+							<path d="M6 15.5c-.48 0-.89.32-1.01.78l-.33 1.22-1.22.33c-.46.12-.78.53-.78 1.01s.32.89.78 1.01l1.22.33.33 1.22c.12.46.53.78 1.01.78s.89-.32 1.01-.78l.33-1.22 1.22-.33c.46-.12.78-.53.78-1.01s-.32-.89-.78-1.01l-1.22-.33-.33-1.22c-.12-.46-.53-.78-1.01-.78z"/>
+						</svg>
+					</button>
 					<button id="view-toggle" class="view-toggle-btn" title="Toggle Compact View">
 						<svg class="icon-expand" viewBox="0 0 24 24" fill="currentColor">
 							<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
@@ -2009,6 +2282,31 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 				</div>
 			</div>
 
+			<div id="aesthetic-footer" class="aesthetic-footer hidden">
+				<button id="footer-play" class="footer-play-btn" title="Play/Pause">
+					<svg viewBox="0 0 24 24" fill="currentColor">
+						<path d="M8 5v14l11-7z"/>
+					</svg>
+				</button>
+				<div class="footer-info">
+					<div id="footer-title" class="footer-title">Not playing</div>
+					<div class="footer-meta">
+						<span id="footer-meta">Connect to Spotify to start playing</span>
+						<span class="footer-chip" id="footer-chip">
+							<svg viewBox="0 0 24 24" fill="currentColor">
+								<path d="M10 20v-6H5l7-10v6h5l-7 10z"/>
+							</svg>
+							Immersive
+						</span>
+					</div>
+				</div>
+				<div class="footer-check" title="Active device">
+					<svg viewBox="0 0 24 24" fill="currentColor">
+						<path d="M9 16.2l-3.5-3.5L4 14.2l5 5 12-12-1.4-1.4z"/>
+					</svg>
+				</div>
+			</div>
+
 			<script nonce="${nonce}">
 				const vscode = acquireVsCodeApi();
 				let isPlaying = false;
@@ -2026,6 +2324,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 				let isUserAdjustingVolume = false; // Track if user is actively adjusting volume
 				let lastUserSetVolume = null; // Track the last volume the user set
 				let volumeUpdateTimestamp = 0; // Track when we last sent a volume update
+				const aestheticFooter = document.getElementById('aesthetic-footer');
+				
+				let setViewMode = () => {};
 				
 				// Login button
 				const loginBtn = document.getElementById('login-btn');
@@ -2054,29 +2355,57 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 				// View toggle button
 				const viewToggleBtn = document.getElementById('view-toggle');
 				if (viewToggleBtn) {
+					const expandIcon = viewToggleBtn.querySelector('.icon-expand');
+					const collapseIcon = viewToggleBtn.querySelector('.icon-collapse');
+					
+					setViewMode = (isCompact) => {
+						document.body.classList.toggle('compact-view', isCompact);
+						if (expandIcon && collapseIcon) {
+							expandIcon.classList.toggle('hidden', isCompact);
+							collapseIcon.classList.toggle('hidden', !isCompact);
+						}
+						localStorage.setItem('codebeats-view-mode', isCompact ? 'compact' : 'full');
+					};
+					
 					// Load saved preference
 					const savedView = localStorage.getItem('codebeats-view-mode');
 					if (savedView === 'compact') {
-						document.body.classList.add('compact-view');
-						viewToggleBtn.querySelector('.icon-expand').classList.add('hidden');
-						viewToggleBtn.querySelector('.icon-collapse').classList.remove('hidden');
+						setViewMode(true);
+					} else {
+						setViewMode(false);
 					}
 					
 					viewToggleBtn.addEventListener('click', () => {
-						const isCompact = document.body.classList.toggle('compact-view');
-						
-						// Toggle icons
-						const expandIcon = viewToggleBtn.querySelector('.icon-expand');
-						const collapseIcon = viewToggleBtn.querySelector('.icon-collapse');
-						if (isCompact) {
-							expandIcon.classList.add('hidden');
-							collapseIcon.classList.remove('hidden');
-							localStorage.setItem('codebeats-view-mode', 'compact');
-						} else {
-							expandIcon.classList.remove('hidden');
-							collapseIcon.classList.add('hidden');
-							localStorage.setItem('codebeats-view-mode', 'full');
-						}
+						const isCompact = !document.body.classList.contains('compact-view');
+						setViewMode(isCompact);
+					});
+				}
+				
+				const aestheticToggleBtn = document.getElementById('aesthetic-toggle');
+				
+				function applyAestheticMode(enabled) {
+					document.body.classList.toggle('aesthetic-view', enabled);
+					if (aestheticToggleBtn) {
+						aestheticToggleBtn.classList.toggle('active', enabled);
+					}
+					if (enabled && viewToggleBtn) {
+						setViewMode(false);
+					}
+					if (!enabled && aestheticFooter) {
+						aestheticFooter.classList.add('hidden');
+					}
+					localStorage.setItem('codebeats-aesthetic-mode', enabled ? 'on' : 'off');
+				}
+				
+				if (aestheticToggleBtn) {
+					const savedAesthetic = localStorage.getItem('codebeats-aesthetic-mode') === 'on';
+					if (savedAesthetic) {
+						applyAestheticMode(true);
+					}
+					
+					aestheticToggleBtn.addEventListener('click', () => {
+						const enable = !document.body.classList.contains('aesthetic-view');
+						applyAestheticMode(enable);
 					});
 				}
 				
@@ -2181,6 +2510,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 				const shuffleBtn = document.getElementById('shuffle-btn');
 				const repeatBtn = document.getElementById('repeat-btn');
 				const likeBtn = document.getElementById('like-btn');
+				const footerPlayBtn = document.getElementById('footer-play');
 				
 				if (playPauseBtn) {
 					playPauseBtn.addEventListener('click', () => {
@@ -2221,6 +2551,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 							setTimeout(() => svg.classList.remove('heart-animation'), 300);
 						}
 						vscode.postMessage({ type: 'toggleLike' });
+					});
+				}
+				
+				if (footerPlayBtn) {
+					footerPlayBtn.addEventListener('click', () => {
+						vscode.postMessage({ type: 'togglePlayPause' });
 					});
 				}
 				
@@ -2373,6 +2709,50 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					}
 				}
 				
+				function updateAestheticFooter(data) {
+					const footer = document.getElementById('aesthetic-footer');
+					if (!footer) return;
+					
+					const isAesthetic = document.body.classList.contains('aesthetic-view');
+					const titleEl = document.getElementById('footer-title');
+					const metaEl = document.getElementById('footer-meta');
+					const chipEl = document.getElementById('footer-chip');
+					
+					if (!isAesthetic || !data || data.noDevice || !data.track) {
+						footer.classList.add('hidden');
+						return;
+					}
+					
+					footer.classList.remove('hidden');
+					
+					if (titleEl) {
+						titleEl.textContent = data.track || 'Not playing';
+						titleEl.title = data.track || '';
+					}
+					
+					if (metaEl) {
+						const artistPart = data.artist || 'Unknown Artist';
+						const albumPart = data.album ? \` • \${data.album}\` : '';
+						metaEl.textContent = \`\${artistPart}\${albumPart}\`;
+						metaEl.title = \`\${artistPart}\${albumPart}\`;
+					}
+					
+					if (chipEl) {
+						chipEl.innerHTML = \`
+							<svg viewBox="0 0 24 24" fill="currentColor">
+								<path d="M10 20v-6H5l7-10v6h5l-7 10z"/>
+							</svg>
+							\${data.deviceName || 'Immersive'}
+						\`;
+					}
+					
+					if (footerPlayBtn) {
+						footerPlayBtn.innerHTML = data.isPlaying ?
+							'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>' :
+							'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+					}
+				}
+				
 				// Smooth progress animation
 				function animateProgress() {
 					if (!isPlaying || !lastDurationMs) {
@@ -2431,6 +2811,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 						currentTrackId = null;
 						stopProgressAnimation();
 						updatePlayPauseIcon();
+						updateAestheticFooter(data);
 						return;
 					}
 
@@ -2675,6 +3056,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 						}
 					}
 					
+					updateAestheticFooter(data);
 					updatePlayPauseIcon();
 				}
 				
