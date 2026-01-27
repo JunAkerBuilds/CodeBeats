@@ -2380,6 +2380,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 						aestheticFooter.classList.add('hidden');
 					}
 					if (enabled) {
+						// Show footer when aesthetic mode is enabled
+						if (aestheticFooter) {
+							aestheticFooter.classList.remove('hidden');
+						}
 						// Remove play indicator when aesthetic view is enabled
 						const playIndicator = document.querySelector('.play-indicator');
 						if (playIndicator) {
@@ -2847,17 +2851,31 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					if (!footer) return;
 					
 					const isAesthetic = document.body.classList.contains('aesthetic-view');
+					
 					const titleEl = document.getElementById('footer-title');
 					const metaEl = document.getElementById('footer-meta');
 					const chipEl = document.getElementById('footer-chip');
 					
-					if (!isAesthetic || !data || data.noDevice || !data.track) {
-						footer.classList.add('hidden');
+					// Update footer content based on playback state
+					if (!data || data.noDevice || !data.track) {
+						// No track playing - show default state
+						if (titleEl) {
+							titleEl.textContent = 'Not playing';
+							titleEl.title = 'Not playing';
+						}
+						
+						if (metaEl) {
+							metaEl.textContent = data?.noDevice ? 'No active device found' : 'Connect to Spotify to start playing';
+							metaEl.title = data?.noDevice ? 'No active device found' : 'Connect to Spotify to start playing';
+						}
+						
+						if (footerPlayBtn) {
+							footerPlayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+						}
 						return;
 					}
 					
-					footer.classList.remove('hidden');
-					
+					// Update with track information
 					if (titleEl) {
 						titleEl.textContent = data.track || 'Not playing';
 						titleEl.title = data.track || '';
