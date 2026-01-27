@@ -971,6 +971,7 @@ var SidebarProvider = class {
 					background: linear-gradient(180deg, #b19fc2 0%, #8f829a 38%, #5a5c63 100%);
 					color: #f7f7f8;
 					min-height: 100vh;
+					transition: background 1s ease;
 				}
 				
 				body.aesthetic-view .bg-gradient {
@@ -2811,6 +2812,16 @@ var SidebarProvider = class {
 					if (!enabled && aestheticFooter) {
 						aestheticFooter.classList.add('hidden');
 					}
+					if (enabled) {
+						// Generate gradient from current album artwork if available
+						const albumArtImg = document.querySelector('.album-art img');
+						if (albumArtImg && albumArtImg.src) {
+							generateGradientFromAlbum(albumArtImg.src);
+						}
+					} else {
+						// Reset to default background when disabling aesthetic mode
+						document.body.style.background = '';
+					}
 					localStorage.setItem('codebeats-aesthetic-mode', enabled ? 'on' : 'off');
 				}
 				
@@ -3110,6 +3121,107 @@ var SidebarProvider = class {
 					return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
 				}
 				
+				// Extract dominant colors from album artwork and generate gradient
+				function generateGradientFromAlbum(albumArtUrl) {
+					if (!albumArtUrl || !document.body.classList.contains('aesthetic-view')) {
+						return;
+					}
+					
+					const img = new Image();
+					img.crossOrigin = 'anonymous';
+					
+					img.onload = function() {
+						try {
+							const canvas = document.createElement('canvas');
+							const ctx = canvas.getContext('2d');
+							
+							// Limit canvas size for performance
+							const maxSize = 200;
+							const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+							canvas.width = img.width * scale;
+							canvas.height = img.height * scale;
+							
+							ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+							
+							// Sample colors from different regions of the image
+							const samplePoints = [
+								{ x: 0.1, y: 0.1 }, // Top-left
+								{ x: 0.9, y: 0.1 }, // Top-right
+								{ x: 0.5, y: 0.5 }, // Center
+								{ x: 0.1, y: 0.9 }, // Bottom-left
+								{ x: 0.9, y: 0.9 }, // Bottom-right
+								{ x: 0.3, y: 0.3 }, // Additional samples for better color extraction
+								{ x: 0.7, y: 0.7 }
+							];
+							
+							const colors = samplePoints.map(point => {
+								const x = Math.floor(point.x * canvas.width);
+								const y = Math.floor(point.y * canvas.height);
+								const pixelData = ctx.getImageData(x, y, 1, 1).data;
+								return {
+									r: pixelData[0],
+									g: pixelData[1],
+									b: pixelData[2],
+									brightness: (pixelData[0] + pixelData[1] + pixelData[2]) / 3
+								};
+							});
+							
+							// Find the most vibrant (highest saturation) color
+							const vibrant = colors.reduce((max, color) => {
+								const saturation = Math.max(color.r, color.g, color.b) - Math.min(color.r, color.g, color.b);
+								const maxSaturation = Math.max(max.r, max.g, max.b) - Math.min(max.r, max.g, max.b);
+								return saturation > maxSaturation ? color : max;
+							}, colors[0]);
+							
+							// Find the darkest color
+							const dark = colors.reduce((min, color) => {
+								return color.brightness < min.brightness ? color : min;
+							}, colors[0]);
+							
+							// Create a mid-tone color by blending vibrant and dark
+							const mid = {
+								r: Math.floor((vibrant.r * 0.6 + dark.r * 0.4)),
+								g: Math.floor((vibrant.g * 0.6 + dark.g * 0.4)),
+								b: Math.floor((vibrant.b * 0.6 + dark.b * 0.4))
+							};
+							
+							// Enhance colors slightly for better visual appeal
+							const enhanceColor = (color, factor = 1.1) => ({
+								r: Math.min(255, Math.floor(color.r * factor)),
+								g: Math.min(255, Math.floor(color.g * factor)),
+								b: Math.min(255, Math.floor(color.b * factor))
+							});
+							
+							const topColor = enhanceColor(vibrant, 1.15);
+							const midColor = mid;
+							const bottomColor = {
+								r: Math.max(0, Math.min(255, dark.r - 15)),
+								g: Math.max(0, Math.min(255, dark.g - 15)),
+								b: Math.max(0, Math.min(255, dark.b - 15))
+							};
+							
+							// Generate gradient
+							const color1 = \`rgb(\${topColor.r}, \${topColor.g}, \${topColor.b})\`;
+							const color2 = \`rgb(\${midColor.r}, \${midColor.g}, \${midColor.b})\`;
+							const color3 = \`rgb(\${bottomColor.r}, \${bottomColor.g}, \${bottomColor.b})\`;
+							
+							const gradient = \`linear-gradient(180deg, \${color1} 0%, \${color2} 38%, \${color3} 100%)\`;
+							document.body.style.background = gradient;
+						} catch (e) {
+							console.error('Error generating gradient:', e);
+							// Fallback to default gradient on error
+							document.body.style.background = 'linear-gradient(180deg, #b19fc2 0%, #8f829a 38%, #5a5c63 100%)';
+						}
+					};
+					
+					img.onerror = function() {
+						// Fallback to default gradient on error (CORS or loading issues)
+						document.body.style.background = 'linear-gradient(180deg, #b19fc2 0%, #8f829a 38%, #5a5c63 100%)';
+					};
+					
+					img.src = albumArtUrl;
+				}
+				
 				// Update device name display
 				function updateDeviceName(deviceName) {
 					const deviceNameEl = document.getElementById('device-name');
@@ -3229,12 +3341,21 @@ var SidebarProvider = class {
 						stopProgressAnimation();
 						updatePlayPauseIcon();
 						updateAestheticFooter(data);
+						// Reset to default gradient when no playback
+						if (document.body.classList.contains('aesthetic-view')) {
+							document.body.style.background = 'linear-gradient(180deg, #b19fc2 0%, #8f829a 38%, #5a5c63 100%)';
+						}
 						return;
 					}
 
 					// Check if track changed
 					const trackChanged = currentTrackId !== data.trackId;
 					currentTrackId = data.trackId;
+					
+					// Generate gradient from album artwork if in aesthetic mode
+					if (trackChanged && data.albumArt && document.body.classList.contains('aesthetic-view')) {
+						generateGradientFromAlbum(data.albumArt);
+					}
 					
 					isPlaying = data.isPlaying;
 					const spinClass = isPlaying ? 'spinning' : '';
