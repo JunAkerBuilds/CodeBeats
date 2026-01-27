@@ -555,6 +555,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					color: #f7f7f8;
 					min-height: 100vh;
 					transition: background 1s ease;
+					position: relative;
 				}
 				
 				body.aesthetic-view .bg-gradient {
@@ -583,6 +584,18 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					backdrop-filter: blur(12px);
 					-webkit-backdrop-filter: blur(12px);
 					z-index: 12;
+					opacity: 0;
+					visibility: hidden;
+					transition: opacity 0.3s ease, visibility 0.3s ease;
+					pointer-events: none;
+				}
+				
+				/* Show header when hovering anywhere on body or directly on header */
+				body.aesthetic-view:hover .header,
+				body.aesthetic-view .header:hover {
+					opacity: 1;
+					visibility: visible;
+					pointer-events: auto;
 				}
 				
 				body.aesthetic-view .header-title {
