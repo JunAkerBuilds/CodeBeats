@@ -781,24 +781,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					fill: currentColor;
 				}
 				
-				.footer-check {
-					width: 32px;
-					height: 32px;
-					border-radius: 50%;
-					background: linear-gradient(135deg, #19c25a 0%, #1ed760 100%);
-					display: flex;
-					align-items: center;
-					justify-content: center;
-					box-shadow: 0 10px 22px rgba(30, 215, 96, 0.35);
-					border: 2px solid rgba(0, 0, 0, 0.35);
-				}
-				
-				.footer-check svg {
-					width: 14px;
-					height: 14px;
-					fill: #0c0c0e;
-				}
-				
 				.footer-shelf {
 					display: flex;
 					align-items: center;
@@ -2293,18 +2275,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					<div id="footer-title" class="footer-title">Not playing</div>
 					<div class="footer-meta">
 						<span id="footer-meta">Connect to Spotify to start playing</span>
-						<span class="footer-chip" id="footer-chip">
-							<svg viewBox="0 0 24 24" fill="currentColor">
-								<path d="M10 20v-6H5l7-10v6h5l-7 10z"/>
-							</svg>
-							Immersive
-						</span>
 					</div>
-				</div>
-				<div class="footer-check" title="Active device">
-					<svg viewBox="0 0 24 24" fill="currentColor">
-						<path d="M9 16.2l-3.5-3.5L4 14.2l5 5 12-12-1.4-1.4z"/>
-					</svg>
 				</div>
 			</div>
 
@@ -2396,10 +2367,18 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 						aestheticFooter.classList.add('hidden');
 					}
 					if (enabled) {
-						// Generate gradient from current album artwork if available
+						// Remove play indicator when aesthetic view is enabled
+						const playIndicator = document.querySelector('.play-indicator');
+						if (playIndicator) {
+							playIndicator.remove();
+						}
+						// Try to generate gradient from current album artwork if available
 						const albumArtImg = document.querySelector('.album-art img');
 						if (albumArtImg && albumArtImg.src) {
 							generateGradientFromAlbum(albumArtImg.src);
+						} else {
+							// Otherwise load the last saved gradient
+							loadLastGradient();
 						}
 					} else {
 						// Reset to default background when disabling aesthetic mode
@@ -2412,6 +2391,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 					const savedAesthetic = localStorage.getItem('codebeats-aesthetic-mode') === 'on';
 					if (savedAesthetic) {
 						applyAestheticMode(true);
+						// Load last gradient on initial load if aesthetic mode is enabled
+						setTimeout(() => {
+							loadLastGradient();
+						}, 100);
 					}
 					
 					aestheticToggleBtn.addEventListener('click', () => {
@@ -2705,8 +2688,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 				}
 				
 				// Extract dominant colors from album artwork and generate gradient
-				function generateGradientFromAlbum(albumArtUrl) {
-					if (!albumArtUrl || !document.body.classList.contains('aesthetic-view')) {
+				function generateGradientFromAlbum(albumArtUrl, saveToStorage = true) {
+					if (!albumArtUrl) {
 						return;
 					}
 					
@@ -2789,20 +2772,45 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 							const color3 = \`rgb(\${bottomColor.r}, \${bottomColor.g}, \${bottomColor.b})\`;
 							
 							const gradient = \`linear-gradient(180deg, \${color1} 0%, \${color2} 38%, \${color3} 100%)\`;
-							document.body.style.background = gradient;
+							
+							// Save to localStorage for persistence
+							if (saveToStorage) {
+								localStorage.setItem('codebeats-last-gradient', gradient);
+								localStorage.setItem('codebeats-last-album-art', albumArtUrl);
+							}
+							
+							// Apply gradient if in aesthetic mode
+							if (document.body.classList.contains('aesthetic-view')) {
+								document.body.style.background = gradient;
+							}
 						} catch (e) {
 							console.error('Error generating gradient:', e);
-							// Fallback to default gradient on error
-							document.body.style.background = 'linear-gradient(180deg, #b19fc2 0%, #8f829a 38%, #5a5c63 100%)';
+							// Fallback to last saved gradient or default
+							loadLastGradient();
 						}
 					};
 					
 					img.onerror = function() {
-						// Fallback to default gradient on error (CORS or loading issues)
-						document.body.style.background = 'linear-gradient(180deg, #b19fc2 0%, #8f829a 38%, #5a5c63 100%)';
+						// Fallback to last saved gradient or default
+						loadLastGradient();
 					};
 					
 					img.src = albumArtUrl;
+				}
+				
+				// Load the last saved gradient from localStorage
+				function loadLastGradient() {
+					if (!document.body.classList.contains('aesthetic-view')) {
+						return;
+					}
+					
+					const lastGradient = localStorage.getItem('codebeats-last-gradient');
+					if (lastGradient) {
+						document.body.style.background = lastGradient;
+					} else {
+						// Fallback to default gradient
+						document.body.style.background = 'linear-gradient(180deg, #b19fc2 0%, #8f829a 38%, #5a5c63 100%)';
+					}
 				}
 				
 				// Update device name display
@@ -2847,15 +2855,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 						const albumPart = data.album ? \` • \${data.album}\` : '';
 						metaEl.textContent = \`\${artistPart}\${albumPart}\`;
 						metaEl.title = \`\${artistPart}\${albumPart}\`;
-					}
-					
-					if (chipEl) {
-						chipEl.innerHTML = \`
-							<svg viewBox="0 0 24 24" fill="currentColor">
-								<path d="M10 20v-6H5l7-10v6h5l-7 10z"/>
-							</svg>
-							\${data.deviceName || 'Immersive'}
-						\`;
 					}
 					
 					if (footerPlayBtn) {
@@ -2924,9 +2923,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 						stopProgressAnimation();
 						updatePlayPauseIcon();
 						updateAestheticFooter(data);
-						// Reset to default gradient when no playback
+						// Load last saved gradient when no playback
 						if (document.body.classList.contains('aesthetic-view')) {
-							document.body.style.background = 'linear-gradient(180deg, #b19fc2 0%, #8f829a 38%, #5a5c63 100%)';
+							loadLastGradient();
 						}
 						return;
 					}
@@ -2960,7 +2959,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 											\`<span class="vinyl-icon">💿</span>\`
 									}
 								</div>
-									\${isPlaying ? \`
+									\${isPlaying && !document.body.classList.contains('aesthetic-view') ? \`
 										<div class="play-indicator">
 											<div class="equalizer">
 												<div class="eq-bar"></div>
@@ -3053,9 +3052,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 							}
 						}
 						
-						// Update play indicator
+						// Update play indicator (hide in aesthetic view)
 						const playIndicator = nowPlayingEl.querySelector('.play-indicator');
-						if (isPlaying && !playIndicator) {
+						const isAestheticView = document.body.classList.contains('aesthetic-view');
+						if (isPlaying && !playIndicator && !isAestheticView) {
 							const albumArtWrapper = nowPlayingEl.querySelector('.album-art-wrapper');
 							if (albumArtWrapper) {
 								const indicator = document.createElement('div');
@@ -3069,7 +3069,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 								\`;
 								albumArtWrapper.appendChild(indicator);
 							}
-						} else if (!isPlaying && playIndicator) {
+						} else if ((!isPlaying || isAestheticView) && playIndicator) {
 							playIndicator.remove();
 						}
 					}
