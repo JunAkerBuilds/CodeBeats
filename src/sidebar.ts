@@ -140,7 +140,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 	private getHtml(webview: vscode.Webview) {
 		const nonce = getNonce();
 		const isAuthenticated = !!this.accessToken;
-		const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'src', 'sidebar', 'sidebar.css'));
 		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'src', 'sidebar', 'sidebar.js'));
 		const iconUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'icon.png'));
 		const hasClientId = !!this.getClientId();
@@ -150,7 +149,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 			return this.applyTemplateVariables(htmlTemplate, {
 				AUTHENTICATED: String(isAuthenticated),
 				CSP_SOURCE: webview.cspSource,
-				CSS_URI: cssUri.toString(),
+				CSS_LINKS: this.getStylesheetLinks(webview),
 				HEADER_BUTTONS: this.getHeaderButtons(isAuthenticated),
 				ICON_URI: iconUri.toString(),
 				MAIN_CONTENT: this.getMainContent(isAuthenticated, hasClientId),
@@ -231,6 +230,28 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 	
 	private readSidebarFile(...pathSegments: string[]): string {
 		return fs.readFileSync(path.join(this.context.extensionPath, ...pathSegments), 'utf-8');
+	}
+
+	private getStylesheetLinks(webview: vscode.Webview): string {
+		const stylesheetFiles = [
+			'base.css',
+			'buttons.css',
+			'setup.css',
+			'now-playing.css',
+			'controls.css',
+			'playlists.css',
+			'compact-view.css',
+			'aesthetic-view.css'
+		];
+
+		return stylesheetFiles
+			.map(file => {
+				const stylesheetUri = webview.asWebviewUri(
+					vscode.Uri.joinPath(this.context.extensionUri, 'src', 'sidebar', 'styles', file)
+				);
+				return `<link rel="stylesheet" href="${stylesheetUri}">`;
+			})
+			.join('\n\t');
 	}
 
 	private applyTemplateVariables(template: string, values: Record<string, string>): string {

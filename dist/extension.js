@@ -558,7 +558,6 @@ var SidebarProvider = class {
   getHtml(webview) {
     const nonce = getNonce();
     const isAuthenticated = !!this.accessToken;
-    const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "src", "sidebar", "sidebar.css"));
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "src", "sidebar", "sidebar.js"));
     const iconUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "icon.png"));
     const hasClientId = !!this.getClientId();
@@ -567,7 +566,7 @@ var SidebarProvider = class {
       return this.applyTemplateVariables(htmlTemplate, {
         AUTHENTICATED: String(isAuthenticated),
         CSP_SOURCE: webview.cspSource,
-        CSS_URI: cssUri.toString(),
+        CSS_LINKS: this.getStylesheetLinks(webview),
         HEADER_BUTTONS: this.getHeaderButtons(isAuthenticated),
         ICON_URI: iconUri.toString(),
         MAIN_CONTENT: this.getMainContent(isAuthenticated, hasClientId),
@@ -642,6 +641,24 @@ var SidebarProvider = class {
   }
   readSidebarFile(...pathSegments) {
     return fs.readFileSync(path.join(this.context.extensionPath, ...pathSegments), "utf-8");
+  }
+  getStylesheetLinks(webview) {
+    const stylesheetFiles = [
+      "base.css",
+      "buttons.css",
+      "setup.css",
+      "now-playing.css",
+      "controls.css",
+      "playlists.css",
+      "compact-view.css",
+      "aesthetic-view.css"
+    ];
+    return stylesheetFiles.map((file) => {
+      const stylesheetUri = webview.asWebviewUri(
+        vscode.Uri.joinPath(this.context.extensionUri, "src", "sidebar", "styles", file)
+      );
+      return `<link rel="stylesheet" href="${stylesheetUri}">`;
+    }).join("\n	");
   }
   applyTemplateVariables(template, values) {
     return Object.entries(values).reduce((output, [key, value]) => {
