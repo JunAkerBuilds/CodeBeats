@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{CSP_SOURCE}}; img-src {{CSP_SOURCE}} https: data:; script-src 'nonce-{{NONCE}}';">
+	<link rel="stylesheet" href="{{CSS_URI}}">
+</head>
+<body data-authenticated="{{AUTHENTICATED}}">
+	<div class="bg-gradient"></div>
+	<div class="container">
+		<div class="header">
+			<div class="header-left">
+				<div class="logo">
+					<img src="{{ICON_URI}}" alt="CodeBeats" class="logo-image" />
+				</div>
+				<div class="header-title">CodeBeats</div>
+			</div>
+			<div class="header-right">
+				{{HEADER_BUTTONS}}
+				<div class="status-pill {{STATUS_CLASS}}">
+					<span class="status-dot"></span>
+					{{STATUS_TEXT}}
+				</div>
+			</div>
+		</div>
+
+		{{MAIN_CONTENT}}
+	</div>
+
+	<div id="aesthetic-footer" class="aesthetic-footer hidden">
+		<button id="footer-play" class="footer-play-btn" title="Play/Pause">
+			<svg viewBox="0 0 24 24" fill="currentColor">
+				<path d="M8 5v14l11-7z"/>
+			</svg>
+		</button>
+		<div class="footer-info">
+			<div id="footer-title" class="footer-title">Not playing</div>
+			<div class="footer-meta">
+				<span id="footer-meta">Connect to Spotify to start playing</span>
+			</div>
+		</div>
+	</div>
+
+	<script nonce="{{NONCE}}" src="{{SCRIPT_URI}}"></script>
+</body>
+</html>
