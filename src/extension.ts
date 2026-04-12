@@ -132,7 +132,9 @@ export async function activate(context: vscode.ExtensionContext) {
 function startStatusBarUpdates(context: vscode.ExtensionContext) {
 	const updateStatusBar = async () => {
 		const playbackInfo = await getCurrentPlayback(context);
-		if (!statusBarItem) return;
+		if (!statusBarItem) {
+			return;
+		}
 		
 		if (playbackInfo && playbackInfo.track && !playbackInfo.noDevice) {
 			const icon = playbackInfo.isPlaying ? '$(play)' : '$(debug-pause)';

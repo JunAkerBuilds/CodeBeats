@@ -488,7 +488,9 @@ var SidebarProvider = class {
       }
     });
     webviewView.webview.onDidReceiveMessage(async (message) => {
-      if (!message || !message.type) return;
+      if (!message || !message.type) {
+        return;
+      }
       switch (message.type) {
         case "selectDevice":
           vscode.commands.executeCommand("music-player.selectDevice");
@@ -2758,6 +2760,8 @@ var SidebarProvider = class {
 							collapseIcon.classList.toggle('hidden', !isCompact);
 						}
 						localStorage.setItem('codebeats-view-mode', isCompact ? 'compact' : 'full');
+						// Update footer visibility based on both conditions
+						updateAestheticFooterVisibility();
 					};
 					
 					// Load saved preference
@@ -2776,6 +2780,25 @@ var SidebarProvider = class {
 				
 				const aestheticToggleBtn = document.getElementById('aesthetic-toggle');
 				
+				// Helper function to update footer visibility based on both conditions
+				function updateAestheticFooterVisibility() {
+					if (!aestheticFooter) return;
+					
+					const isAestheticView = document.body.classList.contains('aesthetic-view');
+					const isCompactView = document.body.classList.contains('compact-view');
+					
+					// Hide footer when both aesthetic view and compact view are enabled
+					if (isAestheticView && isCompactView) {
+						aestheticFooter.classList.add('hidden');
+					} else if (isAestheticView && !isCompactView) {
+						// Show footer only when aesthetic view is enabled and compact view is NOT enabled
+						aestheticFooter.classList.remove('hidden');
+					} else {
+						// Hide footer when aesthetic view is disabled
+						aestheticFooter.classList.add('hidden');
+					}
+				}
+				
 				function applyAestheticMode(enabled) {
 					document.body.classList.toggle('aesthetic-view', enabled);
 					if (aestheticToggleBtn) {
@@ -2784,14 +2807,7 @@ var SidebarProvider = class {
 					if (enabled && viewToggleBtn) {
 						setViewMode(false);
 					}
-					if (!enabled && aestheticFooter) {
-						aestheticFooter.classList.add('hidden');
-					}
 					if (enabled) {
-						// Show footer when aesthetic mode is enabled
-						if (aestheticFooter) {
-							aestheticFooter.classList.remove('hidden');
-						}
 						// Remove play indicator when aesthetic view is enabled
 						const playIndicator = document.querySelector('.play-indicator');
 						if (playIndicator) {
@@ -2809,6 +2825,8 @@ var SidebarProvider = class {
 						// Reset to default background when disabling aesthetic mode
 						document.body.style.background = '';
 					}
+					// Update footer visibility based on both conditions
+					updateAestheticFooterVisibility();
 					localStorage.setItem('codebeats-aesthetic-mode', enabled ? 'on' : 'off');
 				}
 				
@@ -3905,7 +3923,9 @@ async function activate(context) {
 function startStatusBarUpdates(context) {
   const updateStatusBar = async () => {
     const playbackInfo = await getCurrentPlayback(context);
-    if (!statusBarItem) return;
+    if (!statusBarItem) {
+      return;
+    }
     if (playbackInfo && playbackInfo.track && !playbackInfo.noDevice) {
       const icon = playbackInfo.isPlaying ? "$(play)" : "$(debug-pause)";
       const trackInfo = `${playbackInfo.track} - ${playbackInfo.artist}`;
