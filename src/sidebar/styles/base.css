@@ -46,7 +46,8 @@ body {
 .container {
 	position: relative;
 	z-index: 1;
-	padding: 12px;
+	padding: 0 12px 12px;
+	--header-reveal-offset: 0px;
 }
 
 :root {
@@ -85,13 +86,41 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] .btn-play-pause:hover 
 	box-shadow: 0 5px 20px rgba(29, 185, 84, 0.4);
 }
 
-.header {
+body:not(.aesthetic-view) .header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	margin-bottom: 0;
+	padding-bottom: 0;
+	max-height: 0;
+	overflow: hidden;
+	border-bottom: 1px solid transparent;
+	opacity: 0;
+	transform: translateY(-6px);
+	pointer-events: none;
+	transition:
+		max-height 0.2s ease,
+		margin-bottom 0.2s ease,
+		padding-bottom 0.2s ease,
+		border-color 0.2s ease,
+		opacity 0.2s ease,
+		transform 0.2s ease;
+}
+
+body:not(.aesthetic-view) .container:hover .header,
+body:not(.aesthetic-view) .container:focus-within .header {
+	max-height: 48px;
 	margin-bottom: 12px;
 	padding-bottom: 8px;
-	border-bottom: 1px solid var(--border-color);
+	border-bottom-color: var(--border-color);
+	opacity: 1;
+	transform: translateY(0);
+	pointer-events: auto;
+}
+
+body:not(.aesthetic-view) .container:hover,
+body:not(.aesthetic-view) .container:focus-within {
+	--header-reveal-offset: 60px;
 }
 
 .header-left {

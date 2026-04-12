@@ -269,16 +269,21 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
 	private getMainContent(isAuthenticated: boolean, hasClientId: boolean): string {
 		if (isAuthenticated) {
-			const authenticatedSections = [
+			const playerPanel = [
 				'now-playing.html',
-				'controls.html',
-				'device.html',
-				'playlists.html',
-				'sign-out.html'
-			];
-			return authenticatedSections
+				'controls.html'
+			]
 				.map(file => this.readSidebarFile('src', 'sidebar', 'templates', file))
 				.join('\n');
+
+			const authenticatedSections = [
+				`<div class="player-panel">${playerPanel}</div>`,
+				this.readSidebarFile('src', 'sidebar', 'templates', 'device.html'),
+				this.readSidebarFile('src', 'sidebar', 'templates', 'playlists.html'),
+				this.readSidebarFile('src', 'sidebar', 'templates', 'sign-out.html')
+			];
+
+			return authenticatedSections.join('\n');
 		}
 
 		if (!hasClientId) {

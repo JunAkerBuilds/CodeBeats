@@ -673,14 +673,17 @@ var SidebarProvider = class {
   }
   getMainContent(isAuthenticated, hasClientId) {
     if (isAuthenticated) {
-      const authenticatedSections = [
+      const playerPanel = [
         "now-playing.html",
-        "controls.html",
-        "device.html",
-        "playlists.html",
-        "sign-out.html"
+        "controls.html"
+      ].map((file) => this.readSidebarFile("src", "sidebar", "templates", file)).join("\n");
+      const authenticatedSections = [
+        `<div class="player-panel">${playerPanel}</div>`,
+        this.readSidebarFile("src", "sidebar", "templates", "device.html"),
+        this.readSidebarFile("src", "sidebar", "templates", "playlists.html"),
+        this.readSidebarFile("src", "sidebar", "templates", "sign-out.html")
       ];
-      return authenticatedSections.map((file) => this.readSidebarFile("src", "sidebar", "templates", file)).join("\n");
+      return authenticatedSections.join("\n");
     }
     if (!hasClientId) {
       return this.readSidebarFile("src", "sidebar", "templates", "setup-state.html");
